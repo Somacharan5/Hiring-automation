@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Overview · JobPilot{% endblock %}
+
+{% block content %}
+{% set t = stats.totals %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Pipeline <em class="accent-serif">overview</em></h1>
+    <p class="page-sub">
+      {% if stats.last_collected_at %}
+        Last collection {{ stats.last_collected_at|relative }} · {{ t.companies|num }} companies ·
+        shortlist threshold {{ stats.shortlist_threshold }}
+      {% else %}
+        No jobs collected yet.
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn btn--ghost" href="/jobs?status=unscored">Awaiting score ({{ t.awaiting_score|num }})</a>
+    <a class="btn" href="/jobs?status=shortlisted">Shortlist ({{ t.shortlisted|num }})</a>
+  </div>
+</div>
+
+{# ── KPI row. One hero figure, then supporting tiles. ─────────────── #}
+<section class="kpis" aria-label="Headline numbers">
+  <article class="tile tile--hero liquid-glass">
+    <p class="tile__label">Jobs in the pipeline</p>
+    <p class="tile__hero" data-stat="totals.jobs">{{ t.jobs|num }}</p>
+    <p class="tile__foot">
+      <span class="delta delta--up">+{{ stats.today.collected_last_24h }}</span> in the last 24h
+    </p>
+  </article>
+
+  <article class="tile">
+    <p class="tile__label">Passed screen</p>
+    <p class="tile__value" data-stat="totals.screened">{{ t.screened|num }}</p>
+    <p class="tile__foot">{{ t.rejected|num }} rejected by the hard filter</p>
+  </article>
+
+  <article class="tile">
+    <p class="tile__label">Scored</p>
+    <p class="tile__value" data-stat="totals.scored">{{ t.scored|num }}</p>
+    <p class="tile__foot">
+      {% if t.awaiting_score %}{{ t.awaiting_score|num }} still queued{% else %}queue clear{% endif %}
+    </p>
+  </article>
+
+  <article class="tile">
+    <p class="tile__label">Shortlisted</p>
+    <p class="tile__value" data-stat="totals.shortlisted">{{ t.shortlisted|num }}</p>
+    <p class="tile__foot">score ≥ {{ stats.shortlist_threshold }}, no blockers</p>
+  </article>
+
+  <article class="tile">
+    <p class="tile__label">Applications</p>
+    <p class="tile__value" data-stat="totals.applications">{{ t.applications|num }}</p>
+    <p class="tile__foot">
+      {% if stats.today.awaiting_approval %}
+        <span class="warn-text">{{ stats.today.awaiting_approval }} awaiting your approval</span>
+      {% else %}none drafted yet{% endif %}
+    </p>
+  </article>
+</section>
+
+<div class="grid">
+
+  {# ── Funnel ────────────────────────────────────────────────────── #}
+  <section class="card card--span8" aria-labelledby="funnel-h">
+    <header class="card__head">
+      <h2 class="card__title" id="funnel-h">Funnel</h2>
+      <p class="card__sub">Cumulative — each stage counts everything that reached it or moved past it.</p>
+    </header>
+
+    {% if t.jobs == 0 %}
+      {{ ui.empty(
+        "Nothing collected yet",
+        "The funnel fills in as soon as the collectors have run against the ATS boards and job aggregators.",
+        "python -m jobpilot collect", "inbox") }}
+    {% else %}
+    <ol class="funnel" data-funnel>
+      {% for s in stats.funnel %}
+        {% if not loop.first %}
+          <li class="funnel__link {{ 'is-worst' if s.is_worst_leak }} {{ 'is-total' if s.drop and s.count == 0 }}">
+            <span class="funnel__link-rule" aria-hidden="true"></span>
+            {% if s.drop and s.drop > 0 %}
+              <span class="funnel__link-text">
+                <span class="drop">−{{ s.drop|num }}</span>
+                <span class="muted">{{ s.drop_pct }}% lost{% if s.is_worst_leak %} · biggest leak{% endif %}</span>
+              </span>
+            {% else %}
+              <span class="funnel__link-text muted">no drop-off</span>
+            {% endif %}
+          </li>
+        {% endif %}
+        <li class="funnel__stage {{ 'is-empty' if s.count == 0 }}">
+          <div class="funnel__meta">
+            <span class="funnel__label">{{ s.label }}</span>
+            <span class="funnel__hint">{{ s.hint }}</span>
+          </div>
+          <div class="funnel__plot">
+            <div class="funnel__track">
+              <span class="funnel__fill" style="width: {{ s.pct_of_top }}%"
+                    data-funnel-fill="{{ s.key }}"></span>
+            </div>
+            <span class="funnel__value">
+              <strong data-funnel-count="{{ s.key }}">{{ s.count|num }}</strong>
+              <span class="muted">{{ s.pct_of_top }}%</span>
+            </span>
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+
+    {% if stats.reject_reasons %}
+      <div class="card__aside">
+        <p class="aside__title">Why the hard filter rejected {{ t.rejected|num }} jobs</p>
+        <ul class="reasons">
+          {% for r in stats.reject_reasons %}
+            <li><span class="reasons__n">{{ r.n }}</span> <span class="trunc" title="{{ r.reason }}">{{ r.reason }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    {% endif %}
+  </section>
+
+  {# ── Today ─────────────────────────────────────────────────────── #}
+  <section class="card card--span4" aria-labelledby="today-h">
+    <header class="card__head">
+      <h2 class="card__title" id="today-h">Last 24 hours</h2>
+      <p class="card__sub">Send volume against the caps in <code>settings.yaml</code>.</p>
+    </header>
+
+    <div class="stack">
+      {% for ch in stats.today.channels %}
+        {{ ui.meter(ch.sent, ch.cap, ch.label) }}
+      {% endfor %}
+    </div>
+
+    {% if stats.today.dry_run %}
+      <p class="note note--info">
+        {{ ui.glyph('alert') }}
+        <span><strong>Dry run is on.</strong> Outreach and LinkedIn will draft but not send until you
+        flip <code>dry_run: false</code> yourself.</span>
+      </p>
+    {% endif %}
+
+    <dl class="kv kv--split">
+      <div><dt>Awaiting approval</dt><dd class="{{ 'warn-text' if stats.today.awaiting_approval }}">{{ stats.today.awaiting_approval }}</dd></div>
+      <div><dt>Approved, not sent</dt><dd>{{ stats.today.approved_waiting }}</dd></div>
+      <div><dt>Failed</dt><dd class="{{ 'bad-text' if stats.today.failed }}">{{ stats.today.failed }}</dd></div>
+      <div><dt>Replies</dt><dd class="{{ 'good-text' if stats.today.replied }}">{{ stats.today.replied }}</dd></div>
+      <div><dt>Recruiter contacts</dt><dd>{{ t.contacts }}</dd></div>
+      <div><dt>Tailored resumes</dt><dd>{{ t.resumes }}</dd></div>
+    </dl>
+
+    {% if stats.today.awaiting_approval %}
+      <a class="btn btn--full" href="/applications?status=drafted">Review {{ stats.today.awaiting_approval }} draft{{ '' if stats.today.awaiting_approval == 1 else 's' }}</a>
+    {% endif %}
+  </section>
+
+  {# ── Sources ───────────────────────────────────────────────────── #}
+  <section class="card card--span7" aria-labelledby="src-h">
+    <header class="card__head">
+      <h2 class="card__title" id="src-h">Source yield</h2>
+      <p class="card__sub">Which boards are actually producing matches, not just volume.</p>
+    </header>
+
+    {% if not stats.sources %}
+      {{ ui.empty("No sources yet",
+                  "Each ATS board and aggregator shows up here with its own pass rate once it has returned a job.",
+                  "python -m jobpilot collect", "search") }}
+    {% else %}
+      <div class="legend" aria-hidden="false">
+        <span class="legend__item"><i class="swatch swatch--live"></i>In pipeline</span>
+        <span class="legend__item"><i class="swatch swatch--short"></i>Shortlisted</span>
+        <span class="legend__item"><i class="swatch swatch--rejected"></i>Rejected</span>
+      </div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table table--sources">
+          <thead>
+            <tr>
+              <th scope="col">Source</th>
+              <th scope="col" class="col-plot">Mix</th>
+              <th scope="col" class="num">Jobs</th>
+              <th scope="col" class="num">Pass&nbsp;%</th>
+              <th scope="col" class="num">Scored</th>
+              <th scope="col" class="num">Best</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in stats.sources %}
+              <tr>
+                <th scope="row"><a class="link" href="/jobs?source={{ s.source }}">{{ s.source|titlecase }}</a></th>
+                <td class="col-plot">
+                  <span class="stack-bar" style="width: {{ [s.width_pct, 12]|max }}%"
+                        title="{{ s.live }} in pipeline · {{ s.shortlisted }} shortlisted · {{ s.rejected }} rejected">
+                    {% if s.seg_live_pct %}<span class="stack-bar__seg stack-bar__seg--live" style="width: {{ s.seg_live_pct }}%"></span>{% endif %}
+                    {% if s.seg_shortlisted_pct %}<span class="stack-bar__seg stack-bar__seg--short" style="width: {{ s.seg_shortlisted_pct }}%"></span>{% endif %}
+                    {% if s.seg_rejected_pct %}<span class="stack-bar__seg stack-bar__seg--rejected" style="width: {{ s.seg_rejected_pct }}%"></span>{% endif %}
+                  </span>
+                </td>
+                <td class="num">{{ s.total|num }}</td>
+                <td class="num">{{ s.pass_pct }}</td>
+                <td class="num {{ 'muted' if not s.scored }}">{{ s.scored }}</td>
+                <td class="num">{{ ui.score(s.best_score) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+
+  {# ── Score distribution ────────────────────────────────────────── #}
+  <section class="card card--span5" aria-labelledby="score-h">
+    <header class="card__head">
+      <h2 class="card__title" id="score-h">Score distribution</h2>
+      <p class="card__sub">
+        {% if stats.scores.scored_total %}
+          {{ stats.scores.scored_total }} scored · median {{ stats.scores.median }} · best {{ stats.scores.best }}
+        {% else %}Bands the matcher grades into.{% endif %}
+      </p>
+    </header>
+
+    {% if not stats.scores.scored_total %}
+      {{ ui.empty("Nothing scored yet",
+                  "The matcher grades each screened job 0–100 against your profile. Bands fill in as it runs — "
+                  ~ stats.scores.unscored_total ~ " jobs are queued right now.",
+                  "python -m jobpilot match", "spark") }}
+    {% else %}
+      <div class="cols" role="img"
+           aria-label="Score distribution: {% for b in stats.scores.bands %}{{ b.label }} {{ b.count }}{{ ', ' if not loop.last }}{% endfor %}">
+        {% for b in stats.scores.bands %}
+          <div class="cols__item">
+            <div class="cols__plot">
+              <span class="cols__value">{{ b.count }}</span>
+              <span class="cols__bar cols__bar--{{ b.key }}" style="height: {{ b.height_pct }}%"></span>
+            </div>
+            <span class="cols__label">{{ b.label }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      <table class="table table--mini">
+        <caption class="sr-only">Score distribution values</caption>
+        <thead><tr><th scope="col">Band</th><th scope="col" class="num">Jobs</th><th scope="col" class="num">Share</th></tr></thead>
+        <tbody>
+          {% for b in stats.scores.bands %}
+            <tr>
+              <th scope="row"><i class="swatch swatch--{{ b.key }}"></i>{{ b.label }}</th>
+              <td class="num">{{ b.count }}</td>
+              <td class="num muted">{{ b.pct }}%</td>
+            </tr>
+          {% endfor %}
+          <tr class="row--muted">
+            <th scope="row"><i class="swatch swatch--none"></i>Not scored</th>
+            <td class="num">{{ stats.scores.unscored_total }}</td>
+            <td class="num muted">—</td>
+          </tr>
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.JOBPILOT_AUTOREFRESH = 20000;</script>
+{% endblock %}

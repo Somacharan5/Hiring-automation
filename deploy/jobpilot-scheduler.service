@@ -1,0 +1,20 @@
+[Unit]
+Description=JobPilot autonomous agent (scheduler loop)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Edit User and WorkingDirectory to match your VM.
+User=ubuntu
+WorkingDirectory=/home/ubuntu/hiring-automation
+ExecStart=/home/ubuntu/hiring-automation/.venv/bin/python -m jobpilot.scheduler
+Restart=always
+RestartSec=15
+# Playwright/Chromium needs a writable home for its cache.
+Environment=HOME=/home/ubuntu
+StandardOutput=append:/home/ubuntu/hiring-automation/scheduler.log
+StandardError=append:/home/ubuntu/hiring-automation/scheduler.log
+
+[Install]
+WantedBy=multi-user.target

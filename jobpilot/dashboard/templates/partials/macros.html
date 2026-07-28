@@ -1,0 +1,97 @@
+{# ── Reusable bits: badges, empty states, meters ───────────────────── #}
+
+{# Score badge. Colour is a band cue, never the only cue: the number is always
+   present, and unscored reads as an em-dash with a "not scored" title. #}
+{% macro score(value, band=None, size='') %}
+  {%- set b = band if band else ('high' if value is not none and value >= 85 else
+        'good' if value is not none and value >= 70 else
+        'mid'  if value is not none and value >= 50 else
+        'low'  if value is not none else none) -%}
+  {%- if value is none -%}
+    <span class="score score--none {{ size }}" title="Not scored yet — run: python -m jobpilot match">
+      <span class="score__dot" aria-hidden="true"></span><span class="score__val">—</span>
+    </span>
+  {%- else -%}
+    <span class="score score--{{ b }} {{ size }}" title="Match score {{ value }} · band {{ band_label(b) }}">
+      <span class="score__dot" aria-hidden="true"></span><span class="score__val">{{ value }}</span>
+    </span>
+  {%- endif -%}
+{% endmacro %}
+
+{# Job / application status pill: a shaped dot plus the word. #}
+{% macro status(value, kind='job') %}
+  {%- set v = (value or 'unknown')|lower -%}
+  <span class="pill pill--{{ v }}" title="{{ kind }} status: {{ v }}">
+    <span class="pill__dot" aria-hidden="true"></span>{{ v|replace('_',' ') }}
+  </span>
+{% endmacro %}
+
+{% macro chip(text, tone='') %}
+  <span class="chip {% if tone %}chip--{{ tone }}{% endif %}">{{ text }}</span>
+{% endmacro %}
+
+{# Empty state: says what will fill the table and the exact command to run. #}
+{% macro empty(title, body, command=None, icon='inbox') %}
+  <div class="empty">
+    <div class="empty__icon" aria-hidden="true">{{ glyph(icon) }}</div>
+    <p class="empty__title">{{ title }}</p>
+    <p class="empty__body">{{ body }}</p>
+    {% if command %}
+      <div class="empty__cmd">
+        <code>{{ command }}</code>
+        <button type="button" class="btn btn--ghost btn--xs js-copy" data-copy="{{ command }}">Copy</button>
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# Meter: filled portion + a lighter track of the same ramp. #}
+{% macro meter(value, cap, label, tone='accent') %}
+  {%- set pct = (100 * value / cap) if cap else 0 -%}
+  <div class="meter">
+    <div class="meter__head">
+      <span class="meter__label">{{ label }}</span>
+      <span class="meter__value"><strong>{{ value }}</strong>{% if cap %} <span class="muted">/ {{ cap }}</span>{% endif %}</span>
+    </div>
+    <div class="meter__track" role="img"
+         aria-label="{{ label }}: {{ value }} of {{ cap or 'no' }} cap">
+      <span class="meter__fill meter__fill--{{ 'over' if pct >= 100 else 'near' if pct >= 80 else tone }}"
+            style="width: {{ [pct, 100]|min|round(1) }}%"></span>
+    </div>
+  </div>
+{% endmacro %}
+
+{# Truncating cell — full text stays available on hover and for screen readers. #}
+{% macro cell(text, cls='') %}
+  <span class="trunc {{ cls }}" title="{{ text or '' }}">{{ text or '—' }}</span>
+{% endmacro %}
+
+{% macro glyph(name) %}
+{%- if name == 'inbox' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h4l2 3h6l2-3h4"/><path d="M5 5h14l2 8v6H3v-6z"/></svg>
+{%- elif name == 'users' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5.6M17 14.4A5.6 5.6 0 0 1 21 20"/></svg>
+{%- elif name == 'send' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10.5 13.5"/><path d="M21 3l-6.8 18-3.7-7.5L3 9.8z"/></svg>
+{%- elif name == 'file' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+{%- elif name == 'search' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+{%- elif name == 'spark' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>
+{%- elif name == 'external' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+{%- elif name == 'check' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5.5 5.5L20 7"/></svg>
+{%- elif name == 'alert' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 21 19H3z"/><path d="M12 10v4M12 16.5v.01"/></svg>
+{%- elif name == 'block' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m6.2 6.2 11.6 11.6"/></svg>
+{%- elif name == 'bulb' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9V15h7v-1.1A6 6 0 0 0 12 3z"/></svg>
+{%- elif name == 'gap' -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h5M15 12h5"/><path d="M12 5v14" stroke-dasharray="2 3"/></svg>
+{%- else -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8.5"/></svg>
+{%- endif -%}
+{% endmacro %}

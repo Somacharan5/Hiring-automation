@@ -1,0 +1,28 @@
+# core
+openai>=1.40.0
+requests>=2.32.0
+PyYAML>=6.0
+pydantic>=2.7
+
+# job collection
+python-jobspy>=1.1.80
+
+# resume parsing + generation
+pypdf>=4.0
+python-docx>=1.1.0
+reportlab>=4.2
+
+# linkedin automation + ATS portal auto-apply
+playwright>=1.45
+
+# email verification (MX lookups)
+dnspython>=2.6
+
+# dashboard
+fastapi>=0.115
+uvicorn>=0.30
+jinja2>=3.1
+
+# neon (postgres) backend + scheduling for the always-on agent
+psycopg[binary]>=3.2
+APScheduler>=3.10

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Settings · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Settings</h1>
+    <p class="page-sub">The knobs the agent runs on, from <code>config/settings.yaml</code>. Read-only for now — UI editing (persisted to Neon) lands with the Settings write path.</p>
+  </div>
+</div>
+
+<div class="grid">
+  <section class="card card--span6">
+    <div class="card__head"><h2 class="card__title">Targeting</h2></div>
+    <div class="kv">
+      <span>Apply gate</span><strong>{{ cfg.matching.shortlist_threshold }}</strong>
+      <span>Max scored / run</span><strong>{{ cfg.matching.max_jobs_per_run }}</strong>
+      <span>Skip hard work-auth</span><strong>{{ 'yes' if cfg.matching.skip_hard_work_auth else 'no' }}</strong>
+      <span>Fresher years cap</span><strong>{{ cfg.hard_filter.max_years_required }}</strong>
+    </div>
+    <div class="card__head" style="margin-top:16px"><h2 class="card__title">Countries</h2></div>
+    <div class="chips">{% for c in cfg.countries %}<span class="chip">{{ c }}</span>{% endfor %}</div>
+    <div class="card__head" style="margin-top:16px"><h2 class="card__title">Search terms</h2></div>
+    <div class="chips">{% for t in cfg.search.terms %}<span class="chip chip--good">{{ t }}</span>{% endfor %}</div>
+  </section>
+
+  <section class="card card--span6">
+    <div class="card__head"><h2 class="card__title">Outreach — email only</h2></div>
+    <div class="kv">
+      <span>Mode</span><strong>{{ cfg.outreach.mode|titlecase }}</strong>
+      <span>Dry run</span><strong>{{ 'ON — nothing sends' if cfg.outreach.dry_run else 'off — LIVE' }}</strong>
+      <span>First run draft-only</span><strong>{{ 'yes' if cfg.outreach.first_run_draft_only else 'no' }}</strong>
+      <span>Daily send cap</span><strong>{{ cfg.outreach.daily_send_cap }}</strong>
+      <span>From</span><strong>{{ cfg.outreach.from_email }}</strong>
+      <span>Portfolio link</span><strong><a class="link" href="{{ cfg.outreach.portfolio_link }}" target="_blank" rel="noopener">attached</a></strong>
+    </div>
+    <div class="card__head" style="margin-top:16px"><h2 class="card__title">Follow-ups</h2></div>
+    <div class="kv">
+      <span>Every</span><strong>{{ cfg.followup.interval_days }} days</strong>
+      <span>Max follow-ups</span><strong>{{ cfg.followup.max_followups }}</strong>
+      <span>Stop on reply</span><strong>{{ 'yes' if cfg.followup.stop_on_reply else 'no' }}</strong>
+    </div>
+    <div class="card__head" style="margin-top:16px"><h2 class="card__title">Schedule</h2></div>
+    <div class="kv">
+      <span>Timezone</span><strong>{{ cfg.schedule.timezone }}</strong>
+      <span>Scrape</span><strong>{{ cfg.schedule.scrape_at }}</strong>
+      <span>Email</span><strong>{{ cfg.schedule.email_at }}</strong>
+      <span>Reply scan</span><strong>every {{ cfg.schedule.reply_scan_every_hours }}h</strong>
+    </div>
+  </section>
+</div>
+{% endblock %}

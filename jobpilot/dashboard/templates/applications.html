@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Applied · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Applied</h1>
+    <p class="page-sub">Every role at or above the {{ caps.apply_gate }} apply gate, and where it is in the email pipeline. The apply link lets you also submit on the company portal yourself.</p>
+  </div>
+</div>
+
+<section class="kpis kpis--compact" aria-label="Pipeline stages">
+  {% set stage_labels = {'preparing_resume':'Preparing', 'emailed':'Emailed',
+                         'replied':'Replied', 'denied':'Denied', 'failed':'Failed'} %}
+  {% for key, label in stage_labels.items() %}
+    <a class="tile tile--link {{ 'is-active' if filters.status == key }}" href="/applications?status={{ key }}">
+      <p class="tile__label">{{ label }}</p>
+      <p class="tile__value tile__value--{{ key }}">{{ summary.by_status[key]|num }}</p>
+    </a>
+  {% endfor %}
+  <div class="tile">
+    <p class="tile__label">Following up</p>
+    <p class="tile__value">{{ summary.following_up|num }}</p>
+  </div>
+  <a class="tile tile--link {{ 'is-active' if not filters.status }}" href="/applications">
+    <p class="tile__label">All</p>
+    <p class="tile__value">{{ summary.total|num }}</p>
+  </a>
+</section>
+
+{% if not applications %}
+  <div class="card">
+    {% if summary.total == 0 %}
+      {{ ui.empty("No applications yet",
+          "Once a role scores ≥ " ~ caps.apply_gate ~ ", the agent prepares a tailored resume, finds an address, and emails it — logging each step here. Nothing sends while dry_run is on.",
+          "python -m jobpilot outreach-run", "send") }}
+    {% else %}
+      {{ ui.empty("Nothing in this stage", "There are " ~ summary.total ~ " applications in total — pick another stage above.", none, "send") }}
+    {% endif %}
+  </div>
+{% else %}
+<div class="card card--table">
+  <div class="table-wrap table-wrap--tall">
+    <table class="table table--rows">
+      <thead>
+        <tr>
+          <th scope="col">Company</th>
+          <th scope="col" class="col-title">Role</th>
+          <th scope="col" class="num">Score</th>
+          <th scope="col">Stage</th>
+          <th scope="col">To</th>
+          <th scope="col" class="num">Emailed</th>
+          <th scope="col" class="num">Next bump</th>
+          <th scope="col">Apply link</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in applications %}
+          <tr class="{{ 'row--bad' if a.status in ('failed','bounced') }}">
+            <th scope="row">{{ ui.cell(a.company|titlecase) }}</th>
+            <td class="col-title"><a class="link" href="/jobs/{{ a.job_id }}" title="{{ a.title }}">{{ a.title|trim }}</a></td>
+            <td class="num">{{ ui.score(a.match_score, a.band) }}</td>
+            <td>
+              {{ ui.status(a.status, 'application') }}
+              {% if a.followup_count %}<span class="hint">×{{ a.followup_count }}</span>{% endif %}
+              {% if a.error %}<span class="hint hint--bad" title="{{ a.error }}">{{ a.error }}</span>{% endif %}
+            </td>
+            <td>{{ ui.cell(a.contact_email or a.contact_name) }}</td>
+            <td class="num muted nowrap">{{ a.sent_at|relative if a.sent_at else '—' }}</td>
+            <td class="num muted nowrap">{{ a.next_followup_at|relative if a.next_followup_at else '—' }}</td>
+            <td class="nowrap">
+              {% if a.job_url %}
+                <a class="link link--row" href="{{ a.job_url }}" target="_blank" rel="noopener noreferrer">Open&nbsp;{{ ui.glyph('external') }}</a>
+              {% else %}<span class="muted small">—</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

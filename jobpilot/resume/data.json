@@ -1,0 +1,135 @@
+{
+  "name": "Soma Charan",
+  "contacts": [
+    { "label": "Email", "href": "mailto:soma.charan@mastersunion.org" },
+    { "label": "+91-9182935177", "href": null },
+    { "label": "LinkedIn", "href": "https://www.linkedin.com/in/soma-charan-392097214/" },
+    { "label": "Portfolio", "href": "https://portfolio-rho-lake-73.vercel.app/index.html" },
+    { "label": "Website", "href": "https://docs.google.com/document/d/14hdTWutFbF9KeXE5LmwgXcC9vJ4RHbY0CR4wnXmqfZs/edit?usp=sharing" }
+  ],
+  "tagline": "Passionate about Product Management and AI automation, with strong expertise in product scalability and data analytics",
+
+  "education": [
+    {
+      "dates": "2023 - 2027",
+      "institution": "Masters' Union",
+      "href": null,
+      "location": "Gurugram",
+      "bullets": [
+        "Undergraduate Program in **Technology & Business Management**",
+        "Won **multiple hackathons, business pitch competitions, and case competitions** across premier colleges in India"
+      ]
+    },
+    {
+      "dates": "2021 - 2023",
+      "institution": "Avinash College of Commerce",
+      "href": null,
+      "location": "Hyderabad",
+      "bullets": [
+        "**Grade 10 - 91.2% and drove ₹39L revenue** for first product within 8 months of launch"
+      ]
+    }
+  ],
+
+  "experience": [
+    {
+      "start": "Apr'26", "end": "Jul'26",
+      "company": "MastersUnion", "href": null,
+      "note": "Worked in PGP Applied Agentic Initiative ",
+      "role": "AI Generalist",
+      "location": "Gurugram",
+      "bullets": [
+        "Built a **CRM Intelligence Layer** that reduced lead prioritisation effort by **30%** for 10+ counsellors.",
+        "Built **data pipelines, automations, reporting systems, and database architecture** from the ground up.",
+        "Developed **AIAS analytics dashboards** to deliver critical business insights and executive reporting."
+      ]
+    },
+    {
+      "start": "Nov'25", "end": "Mar'26",
+      "company": "Bharatsemi", "href": "https://www.bsemis.com",
+      "note": "Semiconductor company focused on CMOS R&D and manufacturing ",
+      "role": "Product Manager",
+      "location": "Noida",
+      "bullets": [
+        "Built and deployed **MIS systems for centralized data management**, workflow automation, and real-time performance dashboards",
+        "Implemented and optimized **Jira Software workflows and automations**, improving task cross-functional execution",
+        "Led implementation of **Keka HR, automating HR operations** and streamlining employee lifecycle processes",
+        "Authored **PRDs and launched department-wide automation initiatives**, significantly reducing manual effort and improving operational efficiency"
+      ]
+    },
+    {
+      "start": "Aug'25", "end": "Nov'25",
+      "company": "Hike Private Limited", "href": "https://www.linkedin.com/company/hike/",
+      "note": "Real money Gaming platform backed by Tiger Global, Tencent, Bharti, and SoftBank",
+      "role": "Founders' Office - Product, Branding & Marketing",
+      "location": "Gurugram",
+      "bullets": [
+        "Authored **PRDs and defined product roadmaps for social media automation** and experimentation across Instagram, X, and short-form video channels",
+        "Built automated workflows using **n8n, GPT, and Coda, reducing manual effort by 20%**",
+        "Drove **2M+ organic** reach through A/B testing and distribution experiments across Instagram, **Linkedin**, Twitter/X accelerating experiment **velocity** for the founding team"
+      ]
+    },
+    {
+      "start": "Feb'25", "end": "Jul'25",
+      "company": "Natural H2O Mineral", "href": "https://naturalh2omineral.com/",
+      "note": "Premium Water Bottle Manufacturing company",
+      "role": "Founders' Office - Product Operations",
+      "location": "Gurugram",
+      "bullets": [
+        "Optimized **hiring operations by designing scalable SOPs**, reducing recruitment cycle time by 40%, increasing efficiency",
+        "Deployed **automation workflows streamlining nationwide sales operations** & improved cross-functional coordination",
+        "Drove **25% revenue** uplift within 5 months by collaborating on targeted digital growth **campaigns** and deploying **automation** workflows to streamline nationwide sales operations"
+      ]
+    },
+    {
+      "start": "Nov'23", "end": "Jan'25",
+      "company": "NewAgeWear Distributors LLP", "href": "https://www.instagram.com/newagewear_in/",
+      "note": "Drone-Tech Company specialising in the manufacturing of Toy Drones",
+      "role": "Co-Founder & Product Director",
+      "location": "Gurugram",
+      "bullets": [
+        "Scaled a **D2C drone brand to ₹1 Cr+ AR in Yr1** through influencer-led GTM campaigns (16M+ views)",
+        "Owned **product strategy and roadmap for a India-made drone prototype**, prioritizing features based on customer and market insights",
+        "Optimized **supply chain ops by negotiating vendor and logistics partnerships**, reducing costs and delivery ~15%"
+      ]
+    },
+    {
+      "start": "Jun'23", "end": "Oct'24",
+      "company": "Drivolo", "href": "https://drivolo.com/",
+      "note": "Saas company for Driving schools management",
+      "role": "Product Owner",
+      "location": "Hyderabad",
+      "bullets": [
+        "Owned **product development for [Drivolo Android](https://play.google.com/store/apps/details?id=com.shubhamarora9878.drivoloapp)** and web apps, partnering with engineering to launch and iterate on core features",
+        "Reduced **CAC by 20%** and acquired **3,000+ customers** within 6 months by designing growth experiments",
+        "Optimized **customer onboarding and CRM workflows**, improving *conversion* ~35% via funnel redesign & automation"
+      ]
+    }
+  ],
+
+  "labeled": [
+    {
+      "label": "Skills",
+      "bullets": [
+        "n8n, Zapier, Claude Code, Codex, Langchain,Github, SQL, Python , HTML, CSS, Tableau, CRM",
+        "**Product Management** (Roadmapping, PRD Documentation, Backlog Prioritization, Sprint Planning)",
+        "**Wireframing (Figma, Lovable), Product Ideation** (Notion AI, Miro, Gamma), User Experience Research",
+        "**Frameworks** (JTBD, RICE, MoSCoW, Kano Model, North Star Metric, AARRR (Pirate Metrics), Build-Measure-Learn)"
+      ]
+    },
+    {
+      "label": "Extra Curricular",
+      "bullets": [
+        "**Sports** : *Football* (U-14 Nationals) and Secured 1st position in *State & District Cricket*",
+        "**Science Exhibitions** : Built innovative applications solving real-world problems and won **3 consecutive competitions**",
+        "**Projects** : Built (**Vegetablez, [Raydm media](https://www.instagram.com/raydmmedia/)**) and lead *product development, GTM strategy, and growth execution*"
+      ]
+    },
+    {
+      "label": "Personal",
+      "bullets": [
+        "AI Enthusiast | Fitness Enthusiast | Python | Product Management | Geopolitics | Finance"
+      ]
+    }
+  ]
+}

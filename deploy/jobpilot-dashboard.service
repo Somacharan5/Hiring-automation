@@ -1,0 +1,18 @@
+[Unit]
+Description=JobPilot monitoring dashboard (FastAPI/uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/hiring-automation
+# Bind to 0.0.0.0 so it's reachable on the VM's public IP (open the port in the
+# Oracle security list + ufw, and ideally put Caddy/nginx + basic-auth in front).
+ExecStart=/home/ubuntu/hiring-automation/.venv/bin/python -m uvicorn jobpilot.dashboard.app:create_app --factory --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+Environment=HOME=/home/ubuntu
+
+[Install]
+WantedBy=multi-user.target

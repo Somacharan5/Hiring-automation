@@ -1,0 +1,19 @@
+.env
+.linkedin_session.json
+.venv/
+__pycache__/
+*.pyc
+jobpilot.db
+config/profile.yaml
+
+# OS / editor junk
+.DS_Store
+
+# logs
+*.log
+error.log
+
+# generated resume output (regenerable from Resume_creation/ + the tailor)
+output/resumes/
+Resume_creation/resume.html
+Resume_creation/resume.pdf

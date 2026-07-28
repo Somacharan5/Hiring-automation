@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}To-dos · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">To-dos</h1>
+    <p class="page-sub">Manual "apply on this portal" reminders — for roles the agent can't email, or where you want to also submit the official application yourself.</p>
+  </div>
+</div>
+
+<div class="grid">
+  <section class="card card--span5">
+    <div class="card__head"><h2 class="card__title">Add a to-do</h2></div>
+    <form method="post" action="/todos" data-action-form class="todo-form">
+      <div class="field"><label for="t-company">Company</label><input id="t-company" name="company" placeholder="e.g. Stripe"></div>
+      <div class="field"><label for="t-title">Task</label><input id="t-title" name="title" placeholder="Apply on careers portal"></div>
+      <div class="field"><label for="t-url">Portal URL</label><input id="t-url" name="portal_url" type="url" placeholder="https://…"></div>
+      <div class="field"><label for="t-note">Note</label><input id="t-note" name="note" placeholder="Optional"></div>
+      <button class="btn btn--full" type="submit">Add to-do</button>
+    </form>
+  </section>
+
+  <section class="card card--span7 card--table">
+    <div class="card__head"><h2 class="card__title">Open</h2><p class="card__sub">{{ todos|length }} open · {{ done|length - todos|length if done|length >= todos|length else 0 }} done</p></div>
+    {% if not todos %}
+      {{ ui.empty("Nothing to do", "Add portals you want to apply to manually, or let the agent surface roles it couldn't email.", none, "check") }}
+    {% else %}
+      <ul class="todo-list">
+        {% for t in todos %}
+          <li class="todo">
+            <form method="post" action="/todos/{{ t.id }}/toggle" data-action-form class="todo__check">
+              <input type="hidden" name="done" value="true">
+              <button class="check-box" type="submit" aria-label="Mark done" title="Mark done"></button>
+            </form>
+            <div class="todo__body">
+              <p class="todo__title">{{ t.title or t.company or 'Apply' }}{% if t.company and t.title %} <span class="muted">· {{ t.company }}</span>{% endif %}</p>
+              {% if t.note %}<p class="todo__note">{{ t.note }}</p>{% endif %}
+            </div>
+            {% if t.portal_url %}
+              <a class="btn btn--sm" href="{{ t.portal_url }}" target="_blank" rel="noopener noreferrer">Open&nbsp;{{ ui.glyph('external') }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% set done_items = done | selectattr('done') | list %}
+    {% if done_items %}
+      <div class="card__head" style="margin-top:18px"><h2 class="card__title">Done</h2></div>
+      <ul class="todo-list todo-list--done">
+        {% for t in done_items %}
+          <li class="todo todo--done">
+            <form method="post" action="/todos/{{ t.id }}/toggle" data-action-form class="todo__check">
+              <input type="hidden" name="done" value="false">
+              <button class="check-box check-box--on" type="submit" aria-label="Reopen" title="Reopen">{{ ui.glyph('check') }}</button>
+            </form>
+            <div class="todo__body"><p class="todo__title">{{ t.title or t.company or 'Apply' }}</p></div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}{{ job.title|trim }} · {{ job.company|titlecase }} · JobPilot{% endblock %}
+
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="/jobs">Jobs</a> <span aria-hidden="true">/</span>
+  <a href="/jobs?q={{ job.company }}">{{ job.company|titlecase }}</a> <span aria-hidden="true">/</span>
+  <span class="crumbs__here">{{ job.title|trim }}</span>
+</nav>
+
+<header class="detail-head">
+  <div class="detail-head__main">
+    <h1 class="page-title">{{ job.title|trim }}</h1>
+    <p class="detail-head__meta">
+      <strong>{{ job.company|titlecase }}</strong>
+      <span class="sep" aria-hidden="true">·</span>{{ job.location or 'Location not stated' }}
+      {% if job.is_remote %}<span class="tag">remote</span>{% endif %}
+      <span class="sep" aria-hidden="true">·</span><span class="tag tag--quiet">{{ job.source }}</span>
+      <span class="sep" aria-hidden="true">·</span>collected {{ job.collected_at|relative }}
+      {% if job.posted_at %}<span class="sep" aria-hidden="true">·</span>posted {{ job.posted_at|date }}{% endif %}
+    </p>
+  </div>
+  <div class="detail-head__side">
+    {{ ui.score(job.match_score, job.band, 'score--lg') }}
+    {{ ui.status(job.status) }}
+    {% if job.url %}
+      <a class="btn btn--ghost" href="{{ job.url }}" target="_blank" rel="noopener noreferrer">
+        Open posting {{ ui.glyph('external') }}
+      </a>
+    {% endif %}
+  </div>
+</header>
+
+{% if job.status == 'rejected' and job.reject_reason %}
+  <p class="note note--bad">{{ ui.glyph('block') }}
+    <span><strong>Rejected by the hard filter.</strong> {{ job.reject_reason }}</span></p>
+{% endif %}
+
+<div class="grid">
+  <div class="card--span8 stack-lg">
+
+    {# ── Match verdict ──────────────────────────────────────────── #}
+    <section class="card" aria-labelledby="verdict-h">
+      <header class="card__head">
+        <h2 class="card__title" id="verdict-h">Match verdict</h2>
+        {% if verdict and verdict.verdict %}
+          <p class="card__sub">Matcher called it <strong>{{ verdict.verdict|titlecase }}</strong>
+            at {{ job.match_score }}/100 (shortlist at {{ caps.shortlist_threshold }}).</p>
+        {% endif %}
+      </header>
+
+      {% if not verdict %}
+        {{ ui.empty("Not scored yet",
+            "This job has passed the cheap hard filter and is queued for the matcher, which grades it against your profile and writes the strengths, gaps and blockers here.",
+            "python -m jobpilot match", "spark") }}
+      {% elif verdict._unparseable %}
+        <p class="note note--bad">{{ ui.glyph('alert') }}
+          <span>The stored verdict isn't valid JSON — showing it raw. Re-run the matcher for this job.</span></p>
+        <pre class="raw">{{ verdict._raw }}</pre>
+      {% else %}
+        {% if verdict.hard_blockers %}
+          <div class="verdict-block verdict-block--blocker">
+            <p class="verdict-block__head">{{ ui.glyph('block') }} Hard blockers
+              <span class="count">{{ verdict.hard_blockers|length }}</span></p>
+            <ul class="bullets">{% for x in verdict.hard_blockers %}<li>{{ x }}</li>{% endfor %}</ul>
+          </div>
+        {% endif %}
+
+        <div class="verdict-cols">
+          <div class="verdict-block verdict-block--good">
+            <p class="verdict-block__head">{{ ui.glyph('check') }} Matched strengths
+              <span class="count">{{ verdict.matched_strengths|length }}</span></p>
+            {% if verdict.matched_strengths %}
+              <ul class="bullets">{% for x in verdict.matched_strengths %}<li>{{ x }}</li>{% endfor %}</ul>
+            {% else %}<p class="muted small">None recorded.</p>{% endif %}
+          </div>
+
+          <div class="verdict-block verdict-block--gap">
+            <p class="verdict-block__head">{{ ui.glyph('gap') }} Gaps
+              <span class="count">{{ verdict.gaps|length }}</span></p>
+            {% if verdict.gaps %}
+              <ul class="bullets">{% for x in verdict.gaps %}<li>{{ x }}</li>{% endfor %}</ul>
+            {% else %}<p class="muted small">None recorded.</p>{% endif %}
+          </div>
+        </div>
+
+        {% if verdict.tailoring_hints %}
+          <div class="verdict-block verdict-block--hint">
+            <p class="verdict-block__head">{{ ui.glyph('bulb') }} Tailoring hints
+              <span class="count">{{ verdict.tailoring_hints|length }}</span></p>
+            <ul class="bullets">{% for x in verdict.tailoring_hints %}<li>{{ x }}</li>{% endfor %}</ul>
+          </div>
+        {% endif %}
+
+        {% if verdict.reasoning %}
+          <div class="verdict-reason">
+            <p class="verdict-block__head">Reasoning</p>
+            <p>{{ verdict.reasoning }}</p>
+          </div>
+        {% endif %}
+      {% endif %}
+    </section>
+
+    {# ── Job description ────────────────────────────────────────── #}
+    <section class="card" aria-labelledby="jd-h">
+      <header class="card__head">
+        <h2 class="card__title" id="jd-h">Job description</h2>
+        {% if job.description %}
+          <p class="card__sub">{{ job.description|length|num }} characters as collected.</p>
+        {% endif %}
+      </header>
+      {% if job.description %}
+        <details class="jd" open>
+          <summary class="jd__toggle">Show / hide full text</summary>
+          <div class="jd__body">
+            {% for p in job.description|paragraphs %}<p>{{ p }}</p>{% endfor %}
+          </div>
+        </details>
+      {% else %}
+        {{ ui.empty("No description stored",
+            "This source returned a listing without body text. The matcher can only score on title and location for it — open the posting to read it.",
+            none, "file") }}
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="card--span4 stack-lg">
+
+    {# ── Manual override ────────────────────────────────────────── #}
+    <section class="card" aria-labelledby="override-h">
+      <header class="card__head">
+        <h2 class="card__title" id="override-h">Move this job</h2>
+        <p class="card__sub">Re-file it by hand when the scorer got it wrong. This only changes the label — it never sends anything.</p>
+      </header>
+      <form class="override" method="post" action="/jobs/{{ job.id }}/status" data-action-form>
+        <div class="field">
+          <label for="ov-status">Status</label>
+          <select id="ov-status" name="status">
+            {% for s in MANUAL_STATUSES %}
+              <option value="{{ s }}" {{ 'selected' if job.status == s }}>{{ s|titlecase }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field field--grow">
+          <label for="ov-reason">Reason <span class="muted">(kept only when rejecting)</span></label>
+          <input id="ov-reason" type="text" name="reason" placeholder="e.g. needs US work authorisation"
+                 value="{{ job.reject_reason if job.status == 'rejected' else '' }}">
+        </div>
+        <button class="btn btn--full" type="submit">Save status</button>
+      </form>
+    </section>
+
+    {# ── Tailored resume ────────────────────────────────────────── #}
+    <section class="card" aria-labelledby="resume-h">
+      <header class="card__head">
+        <h2 class="card__title" id="resume-h">Tailored resume</h2>
+      </header>
+      {% if not resumes %}
+        {{ ui.empty("No tailored resume yet",
+            "Tailoring rewrites your master profile against this JD and reports an ATS keyword score. It runs on shortlisted jobs.",
+            "python -m jobpilot tailor", "file") }}
+      {% else %}
+        {% for r in resumes %}
+          <article class="artifact {{ 'artifact--old' if not loop.first }}">
+            <div class="artifact__head">
+              <span class="artifact__when">{{ r.created_at|relative }}{% if not loop.first %} · older version{% endif %}</span>
+              {% if r.ats_score is not none %}
+                <span class="ats">ATS <strong>{{ r.ats_score }}</strong>/100</span>
+              {% endif %}
+            </div>
+            {% if r.ats_score is not none %}
+              {{ ui.meter(r.ats_score, 100, 'ATS keyword coverage') }}
+            {% endif %}
+            <p class="artifact__files">
+              {% if r.pdf_path %}<span class="tag" title="{{ r.pdf_path }}">PDF</span>{% endif %}
+              {% if r.docx_path %}<span class="tag" title="{{ r.docx_path }}">DOCX</span>{% endif %}
+              {% if not r.pdf_path and not r.docx_path %}<span class="muted small">No file path recorded.</span>{% endif %}
+            </p>
+            {% if r.keywords_matched %}
+              <p class="kw-head">Matched <span class="count">{{ r.keywords_matched|length }}</span></p>
+              <p class="kws">{% for k in r.keywords_matched %}<span class="chip chip--good">{{ k }}</span>{% endfor %}</p>
+            {% endif %}
+            {% if r.keywords_missing %}
+              <p class="kw-head">Missing <span class="count">{{ r.keywords_missing|length }}</span></p>
+              <p class="kws">{% for k in r.keywords_missing %}<span class="chip chip--warn">{{ k }}</span>{% endfor %}</p>
+            {% endif %}
+          </article>
+        {% endfor %}
+      {% endif %}
+    </section>
+
+    {# ── Contacts ───────────────────────────────────────────────── #}
+    <section class="card" aria-labelledby="contacts-h">
+      <header class="card__head">
+        <h2 class="card__title" id="contacts-h">Contacts at {{ job.company|titlecase }}</h2>
+      </header>
+      {% if not contacts %}
+        {{ ui.empty("No recruiters found yet",
+            "Contact discovery looks up hiring managers and recruiters for this company through the configured email finders.",
+            "python -m jobpilot contacts", "users") }}
+      {% else %}
+        <ul class="contact-list">
+          {% for c in contacts %}
+            <li class="contact">
+              <div class="contact__id">
+                <span class="contact__name">{{ c.name or 'Unnamed contact' }}</span>
+                {% if c.verified %}<span class="pill pill--verified">{{ ui.glyph('check') }} verified</span>{% endif %}
+              </div>
+              {% if c.title %}<p class="contact__title trunc" title="{{ c.title }}">{{ c.title }}</p>{% endif %}
+              {% if c.email %}<p class="contact__email"><a class="link" href="mailto:{{ c.email }}">{{ c.email }}</a></p>{% endif %}
+              <p class="contact__foot">
+                <span class="tag tag--quiet">{{ c.source or 'unknown source' }}</span>
+                <span class="muted">confidence {{ c.confidence if c.confidence is not none else '—' }}</span>
+              </p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+
+    {# ── Application history ────────────────────────────────────── #}
+    <section class="card" aria-labelledby="apps-h">
+      <header class="card__head">
+        <h2 class="card__title" id="apps-h">Application history</h2>
+      </header>
+      {% if not applications %}
+        {{ ui.empty("Never applied to",
+            "Once outreach drafts an email or LinkedIn apply for this role, every attempt and its outcome is logged here.",
+            "python -m jobpilot outreach", "send") }}
+      {% else %}
+        <ol class="timeline">
+          {% for a in applications %}
+            <li class="timeline__item">
+              <div class="timeline__head">
+                <span class="tag tag--quiet">{{ a.channel }}</span>
+                {{ ui.status(a.status, 'application') }}
+                <span class="muted small">{{ (a.sent_at or a.created_at)|relative }}</span>
+              </div>
+              {% if a.subject %}<p class="timeline__subject trunc" title="{{ a.subject }}">{{ a.subject }}</p>{% endif %}
+              {% if a.contact_name or a.contact_email %}
+                <p class="muted small">to {{ a.contact_name or a.contact_email }}</p>
+              {% endif %}
+              {% if a.error %}<p class="note note--bad small">{{ ui.glyph('alert') }}<span>{{ a.error }}</span></p>{% endif %}
+              {% if a.status == 'drafted' %}
+                <form method="post" action="/applications/{{ a.id }}/approve" data-action-form>
+                  <button class="btn btn--sm" type="submit">Approve draft</button>
+                </form>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </section>
+
+    {% if siblings %}
+      <section class="card" aria-labelledby="sib-h">
+        <header class="card__head">
+          <h2 class="card__title" id="sib-h">Other roles at {{ job.company|titlecase }}</h2>
+        </header>
+        <ul class="sibling-list">
+          {% for s in siblings %}
+            <li>
+              <a class="link trunc" href="/jobs/{{ s.id }}" title="{{ s.title }}">{{ s.title|trim }}</a>
+              <span class="sibling-list__meta">{{ ui.score(s.match_score, s.band) }} {{ ui.status(s.status) }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

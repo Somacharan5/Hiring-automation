@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Insights · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Insights</h1>
+    <p class="page-sub">The pipeline at a glance — where jobs enter, where they leak, and how the outreach day is tracking. Updated {{ stats.generated_at|relative }}.</p>
+  </div>
+</div>
+
+<section class="kpis kpis--compact" aria-label="Totals">
+  <div class="tile"><p class="tile__label">Collected</p><p class="tile__value">{{ stats.totals.jobs|num }}</p></div>
+  <div class="tile"><p class="tile__label">Shortlisted ≥{{ stats.apply_gate }}</p><p class="tile__value">{{ stats.totals.shortlisted|num }}</p></div>
+  <div class="tile"><p class="tile__label">Emailed</p><p class="tile__value">{{ stats.totals.applied|num }}</p></div>
+  <div class="tile"><p class="tile__label">Replied</p><p class="tile__value tile__value--replied">{{ stats.totals.replied|num }}</p></div>
+  <div class="tile"><p class="tile__label">Companies</p><p class="tile__value">{{ stats.totals.companies|num }}</p></div>
+  <div class="tile"><p class="tile__label">Resumes</p><p class="tile__value">{{ stats.totals.resumes|num }}</p></div>
+</section>
+
+<div class="grid">
+  <!-- Funnel -->
+  <section class="card card--span7">
+    <div class="card__head"><h2 class="card__title">Pipeline funnel</h2><p class="card__sub">Cumulative — each stage is a subset of the one above.</p></div>
+    <div class="funnel">
+      {% for s in stats.funnel %}
+        <div class="funnel__stage">
+          <span class="funnel__label">{{ s.label }}</span>
+          <div class="funnel__plot">
+            <div class="funnel__track"><span class="funnel__fill" style="width: {{ s.pct_of_top }}%"></span></div>
+            <span class="funnel__value">{{ s.count|num }}{% if s.carry_pct is not none %} <span class="muted">· {{ s.carry_pct }}% carried</span>{% endif %}{% if s.is_worst_leak %} <span class="chip chip--warn">biggest leak</span>{% endif %}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Score distribution -->
+  <section class="card card--span5">
+    <div class="card__head"><h2 class="card__title">Score distribution</h2>
+      <p class="card__sub">{{ stats.scores.scored_total|num }} scored · avg {{ stats.scores.avg if stats.scores.avg is not none else '—' }} · best {{ stats.scores.best if stats.scores.best is not none else '—' }}</p></div>
+    <div class="cols">
+      {% for b in stats.scores.bands %}
+        <div class="cols__item">
+          <div class="cols__plot"><span class="cols__bar cols__bar--{{ b.key }}" style="height: {{ b.height_pct }}%"></span></div>
+          <span class="cols__value">{{ b.count }}</span>
+          <span class="cols__label">{{ b.label }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Source yield -->
+  <section class="card card--span7 card--table">
+    <div class="card__head"><h2 class="card__title">Source yield</h2><p class="card__sub">Which boards actually produce shortlisted roles.</p></div>
+    <div class="table-wrap">
+      <table class="table table--sources table--mini">
+        <thead><tr><th>Source</th><th class="num">Total</th><th class="num">Rejected</th><th class="num">Shortlisted</th><th class="num">Avg</th><th class="num">Best</th></tr></thead>
+        <tbody>
+          {% for s in stats.sources %}
+            <tr>
+              <th scope="row"><span class="tag tag--quiet">{{ s.source }}</span></th>
+              <td class="num">{{ s.total }}</td>
+              <td class="num muted">{{ s.rejected }}</td>
+              <td class="num">{{ s.shortlisted }}</td>
+              <td class="num">{{ s.avg_score if s.avg_score is not none else '—' }}</td>
+              <td class="num">{{ s.best_score if s.best_score is not none else '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Today + rejects -->
+  <section class="card card--span5">
+    <div class="card__head"><h2 class="card__title">Today</h2><p class="card__sub">Last 24 hours vs. the daily cap.</p></div>
+    {{ ui.meter(stats.today.email.sent, stats.today.email.cap, "Emails sent") }}
+    <div class="kv" style="margin-top:14px">
+      <span>Preparing resume</span><strong>{{ stats.today.preparing }}</strong>
+      <span>Emailed</span><strong>{{ stats.today.emailed }}</strong>
+      <span>Following up</span><strong>{{ stats.today.following_up }}</strong>
+      <span>Replied</span><strong>{{ stats.today.replied }}</strong>
+      <span>Collected (24h)</span><strong>{{ stats.today.collected_last_24h }}</strong>
+    </div>
+    {% if stats.reject_reasons %}
+      <div class="card__head" style="margin-top:18px"><h2 class="card__title">Top reject reasons</h2></div>
+      <div class="reasons">
+        {% for r in stats.reject_reasons %}
+          <div class="reasons__row"><span>{{ r.reason }}</span><span class="reasons__n">{{ r.n }}</span></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

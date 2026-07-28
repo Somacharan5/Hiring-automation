@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Agent health · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Agent health</h1>
+    <p class="page-sub">Is the always-on agent actually running? Last run per stage, recent errors, and quota headroom.</p>
+  </div>
+</div>
+
+<section class="kpis kpis--compact" aria-label="Health summary">
+  <div class="tile"><p class="tile__label">Mode</p><p class="tile__value" style="font-size:1.1rem">{{ caps.mode|titlecase }}{% if caps.dry_run %} · dry-run{% endif %}</p></div>
+  <div class="tile"><p class="tile__label">Errors (24h)</p><p class="tile__value {{ 'tile__value--failed' if health.errors_24h }}">{{ health.errors_24h }}</p></div>
+  <div class="tile"><p class="tile__label">Daily email cap</p><p class="tile__value">{{ caps.email_cap }}</p></div>
+  <div class="tile"><p class="tile__label">Apply gate</p><p class="tile__value">{{ caps.apply_gate }}</p></div>
+</section>
+
+<div class="grid">
+  <section class="card card--span5">
+    <div class="card__head"><h2 class="card__title">Last run per stage</h2></div>
+    {% if not health.last_by_kind %}
+      <p class="muted">No runs recorded yet. The scheduler writes a row here each time it scrapes, scores, emails, follows up, or scans replies.</p>
+    {% else %}
+      <div class="kv">
+        {% for kind in ['scrape','score','email','followup','reply_scan'] %}
+          {% set r = health.last_by_kind.get(kind) %}
+          <span>{{ kind|titlecase }}</span>
+          <strong>
+            {% if r %}
+              <span class="pill pill--{{ 'sent' if r.status == 'ok' else 'failed' if r.status == 'error' else 'screened' }}"><span class="pill__dot"></span>{{ r.status }}</span>
+              <span class="muted small">{{ r.started_at|relative }}</span>
+            {% else %}<span class="muted">never</span>{% endif %}
+          </strong>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="card card--span7 card--table">
+    <div class="card__head"><h2 class="card__title">Recent runs</h2></div>
+    {% if not health.runs %}
+      {{ ui.empty("No runs yet", "The Oracle VM scheduler logs every job here so you can confirm the agent is alive.", none, "spark") }}
+    {% else %}
+      <div class="table-wrap">
+        <table class="table table--mini table--rows">
+          <thead><tr><th>Stage</th><th>Status</th><th class="num">Started</th><th class="num">Finished</th><th>Detail</th></tr></thead>
+          <tbody>
+            {% for r in health.runs %}
+              <tr class="{{ 'row--bad' if r.status == 'error' }}">
+                <th scope="row"><span class="tag tag--quiet">{{ r.kind }}</span></th>
+                <td><span class="pill pill--{{ 'sent' if r.status == 'ok' else 'failed' if r.status == 'error' else 'screened' }}"><span class="pill__dot"></span>{{ r.status }}</span></td>
+                <td class="num muted nowrap">{{ r.started_at|relative }}</td>
+                <td class="num muted nowrap">{{ r.finished_at|relative if r.finished_at else '—' }}</td>
+                <td class="trunc" title="{{ r.error or r.stats }}">{{ r.error or (r.stats|string if r.stats else '—') }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

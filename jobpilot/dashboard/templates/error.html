@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · JobPilot{% endblock %}
+
+{% block content %}
+<div class="card card--center">
+  <p class="error-code">{{ code }}</p>
+  <h1 class="page-title">{{ message }}</h1>
+  <p class="page-sub">That job id or page isn't in the store. It may have been collected under a different fingerprint.</p>
+  <p class="page-head__actions">
+    <a class="btn" href="/">Back to overview</a>
+    <a class="btn btn--ghost" href="/jobs">Browse jobs</a>
+  </p>
+</div>
+{% endblock %}

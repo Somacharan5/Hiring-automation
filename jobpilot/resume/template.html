@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  /* Exact-format replica of "Product Management Soma_charan_CV (5)".
+     Layout is fixed here; all content comes from data.json. Carlito is a
+     metric-compatible Calibri clone — embed it (fonts/) for identical output
+     on the headless Linux VM; otherwise Calibri/Segoe UI/Arial fall back. */
+  :root {
+    --ink: #000;
+    --link: #1155cc;          /* Google-docs blue, matches the original */
+    --rule: #000;
+    --muted: #000;
+  }
+  * { box-sizing: border-box; }
+  @page { size: A4; margin: 0; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Carlito", "Calibri", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    font-size: 10px;
+    line-height: 1.28;
+    -webkit-font-smoothing: antialiased;
+  }
+  .resume { padding: 12mm 13mm; }
+
+  /* Header */
+  .head { text-align: center; margin-bottom: 8px; }
+  .head__name { font-size: 16px; font-weight: 700; margin: 0 0 2px; letter-spacing: .2px; }
+  .head__contacts { font-size: 10px; margin: 0 0 3px; }
+  .head__contacts a { color: var(--link); text-decoration: underline; }
+  .head__sep { color: var(--ink); }
+  .head__tagline { font-size: 10px; font-style: italic; margin: 0; }
+
+  /* Section title with rule */
+  .section-title {
+    font-size: 12px; font-weight: 700; margin: 9px 0 3px;
+    padding-bottom: 1px; border-bottom: 1px solid var(--rule);
+  }
+
+  /* Three-column entry: dates | main | location */
+  .entry {
+    display: grid;
+    grid-template-columns: 68px 1fr 66px;
+    column-gap: 10px;
+    margin: 5px 0;
+  }
+  .entry__dates { font-size: 10px; line-height: 1.25; }
+  .entry__loc { font-size: 10px; font-weight: 700; text-align: right; white-space: nowrap; }
+  .entry__main { min-width: 0; }
+  .entry__heading { font-size: 10px; font-weight: 700; }
+  .entry__heading a { color: var(--link); text-decoration: underline; font-weight: 700; }
+  .entry__note { font-weight: 400; font-style: italic; }
+  .entry__role { font-size: 10px; font-weight: 700; margin-top: 1px; }
+
+  /* Labeled rows (Skills / Extra Curricular / Personal) */
+  .entry--labeled .entry__label { font-size: 10px; font-weight: 700; }
+
+  /* Bullets */
+  ul.bullets { margin: 1px 0 0; padding-left: 14px; list-style: disc; }
+  ul.bullets li { margin: 1px 0; padding-left: 1px; }
+  ul.bullets li::marker { font-size: 9px; }
+  .entry__main a { color: var(--link); text-decoration: underline; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+</style>
+</head>
+<body>
+<div class="resume">
+
+  <header class="head">
+    <h1 class="head__name">{{ name }}</h1>
+    <p class="head__contacts">
+      {%- for c in contacts -%}
+        {%- if not loop.first %} <span class="head__sep">|</span> {% endif -%}
+        {%- if c.href %}<a href="{{ c.href }}">{{ c.label }}</a>{% else %}{{ c.label }}{% endif -%}
+      {%- endfor -%}
+    </p>
+    {% if tagline %}<p class="head__tagline">{{ tagline }}</p>{% endif %}
+  </header>
+
+  {% if education %}
+  <section>
+    <h2 class="section-title">Education</h2>
+    {% for e in education %}
+      <div class="entry">
+        <div class="entry__dates">{{ e.dates }}</div>
+        <div class="entry__main">
+          <div class="entry__heading">
+            {%- if e.href %}<a href="{{ e.href }}">{{ e.institution }}</a>{% else %}{{ e.institution }}{% endif -%}
+          </div>
+          {% if e.bullets %}<ul class="bullets">{% for b in e.bullets %}<li>{{ b | rich }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="entry__loc">{{ e.location }}</div>
+      </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if experience %}
+  <section>
+    <h2 class="section-title">Work Experience</h2>
+    {% for x in experience %}
+      <div class="entry">
+        <div class="entry__dates">{{ x.start }} -<br>{{ x.end }}</div>
+        <div class="entry__main">
+          <div class="entry__heading">
+            {%- if x.href %}<a href="{{ x.href }}">{{ x.company }}</a>{% else %}{{ x.company }}{% endif -%}
+            {%- if x.note %} <span class="entry__note">({{ x.note }})</span>{% endif -%}
+          </div>
+          {% if x.role %}<div class="entry__role">{{ x.role }}</div>{% endif %}
+          {% if x.bullets %}<ul class="bullets">{% for b in x.bullets %}<li>{{ b | rich }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="entry__loc">{{ x.location }}</div>
+      </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% for row in labeled %}
+    <div class="entry entry--labeled">
+      <div class="entry__label">{{ row.label }}</div>
+      <div class="entry__main">
+        {% if row.bullets | length == 1 %}
+          <div>{{ row.bullets[0] | rich }}</div>
+        {% else %}
+          <ul class="bullets">{% for b in row.bullets %}<li>{{ b | rich }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+      <div class="entry__loc"></div>
+    </div>
+  {% endfor %}
+
+</div>
+</body>
+</html>

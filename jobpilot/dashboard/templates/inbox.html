@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Inbox · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Inbox</h1>
+    <p class="page-sub">Replies from companies, matched to the role we emailed. Classified only — you write every response yourself.</p>
+  </div>
+</div>
+
+{% if not replies %}
+  <div class="card">
+    {{ ui.empty("No replies yet",
+        "When a company writes back, the reply-scanner matches it to the application, tags the sentiment, rings the bell, and drops it here.",
+        "python -m jobpilot scan-replies", "inbox") }}
+  </div>
+{% else %}
+<div class="timeline">
+  {% for r in replies %}
+    <article class="timeline__item reply reply--{{ r.sentiment or 'other' }} {{ 'is-unread' if not r.is_read }}">
+      <div class="reply__gutter"><span class="reply__dot reply__dot--{{ r.sentiment or 'other' }}" aria-hidden="true"></span></div>
+      <div class="reply__main">
+        <div class="reply__head">
+          <strong class="reply__from">{{ r.company or r.from_email or 'Unknown' }}</strong>
+          {% if r.sentiment %}<span class="chip chip--{{ 'good' if r.sentiment == 'interested' else 'warn' if r.sentiment == 'other' else '' }}">{{ r.sentiment }}</span>{% endif %}
+          <span class="reply__when muted">{{ r.received_at|relative }}</span>
+        </div>
+        {% if r.job_title %}<p class="reply__role muted">re: <a class="link" href="/jobs/{{ r.job_id }}">{{ r.job_title }}</a></p>{% endif %}
+        {% if r.subject %}<p class="reply__subject">{{ r.subject }}</p>{% endif %}
+        {% if r.body %}<p class="reply__body">{{ r.body|truncate(320) }}</p>{% endif %}
+        <div class="reply__foot">
+          <span class="muted small">{{ r.from_email }}</span>
+          {% if not r.is_read %}
+            <form method="post" action="/replies/{{ r.id }}/read" data-action-form>
+              <button class="link link--quiet" type="submit">Mark read</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Scraped jobs · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Scraped jobs</h1>
+    <p class="page-sub">
+      {{ jobs|length|num }} shown of {{ buckets.total|num }} collected
+      {%- if active_filters %} · filtered{% endif %}
+    </p>
+  </div>
+  {% if active_filters %}
+    <div class="page-head__actions"><a class="btn btn--ghost" href="/">Clear filters</a></div>
+  {% endif %}
+</div>
+
+<section class="kpis kpis--compact" aria-label="Score buckets">
+  <a class="tile tile--link {{ 'is-active' if not active_filters }}" href="/">
+    <p class="tile__label">Total scraped</p>
+    <p class="tile__value">{{ buckets.total|num }}</p>
+  </a>
+  <a class="tile tile--link" href="/?min_score=50&sort=score&dir=desc">
+    <p class="tile__label">Score ≥ 50</p>
+    <p class="tile__value">{{ buckets.above_50|num }}</p>
+  </a>
+  <a class="tile tile--link" href="/?min_score=70&sort=score&dir=desc">
+    <p class="tile__label">Score ≥ 70</p>
+    <p class="tile__value">{{ buckets.above_70|num }}</p>
+  </a>
+  <a class="tile tile--link" href="/?min_score=90&sort=score&dir=desc">
+    <p class="tile__label">Score ≥ 90</p>
+    <p class="tile__value">{{ buckets.above_90|num }}</p>
+  </a>
+  <a class="tile tile--link" href="/?status=shortlisted&sort=score&dir=desc">
+    <p class="tile__label">Shortlisted (≥60)</p>
+    <p class="tile__value tile__value--replied">{{ buckets.shortlisted|num }}</p>
+  </a>
+</section>
+
+<form class="filters" method="get" action="/">
+  <div class="field field--grow">
+    <label for="f-q">Search</label>
+    <div class="input-icon">
+      {{ ui.glyph('search') }}
+      <input id="f-q" type="search" name="q" value="{{ filters.q }}" placeholder="Company, title or location…" autocomplete="off">
+    </div>
+  </div>
+  <div class="field">
+    <label for="f-status">Status</label>
+    <select id="f-status" name="status">
+      <option value="">All</option>
+      <option value="active"   {{ 'selected' if filters.status == 'active' }}>Active (not rejected)</option>
+      <option value="unscored" {{ 'selected' if filters.status == 'unscored' }}>Awaiting score</option>
+      {% for s in options.statuses %}
+        <option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s|titlecase }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="f-country">Country</label>
+    <select id="f-country" name="country">
+      <option value="">All</option>
+      {% for c in options.countries %}
+        <option value="{{ c }}" {{ 'selected' if filters.country == c }}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="f-source">Source</label>
+    <select id="f-source" name="source">
+      <option value="">All</option>
+      {% for s in options.sources %}
+        <option value="{{ s }}" {{ 'selected' if filters.source == s }}>{{ s|titlecase }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field field--narrow">
+    <label for="f-score">Min score</label>
+    <input id="f-score" type="number" name="min_score" min="0" max="100" step="5" value="{{ filters.min_score }}" placeholder="any">
+  </div>
+  <div class="field field--check">
+    <label class="check"><input type="checkbox" name="remote" value="on" {{ 'checked' if filters.remote }}><span>Remote only</span></label>
+  </div>
+  <input type="hidden" name="sort" value="{{ filters.sort }}">
+  <input type="hidden" name="dir" value="{{ filters.dir }}">
+  <button class="btn" type="submit">Apply</button>
+</form>
+
+{% if not jobs %}
+  <div class="card">
+    {% if buckets.total == 0 %}
+      {{ ui.empty("No jobs collected yet",
+          "The collectors pull from your ATS company list (Greenhouse / Lever / Ashby) plus remote boards and aggregators. Everything lands here.",
+          "python -m jobpilot collect", "inbox") }}
+    {% else %}
+      {{ ui.empty("Nothing matches these filters",
+          "There are " ~ buckets.total ~ " jobs in the store. Widen the search, lower the minimum score, or clear the filters.", none, "search") }}
+    {% endif %}
+  </div>
+{% else %}
+<div class="card card--table">
+  <div class="table-wrap table-wrap--tall">
+    <table class="table table--rows">
+      <thead>
+        <tr>
+          <th scope="col"><a class="th-sort" href="{{ sort_url('company') }}">Company{{ ' ↑' if filters.sort == 'company' and filters.dir == 'asc' else ' ↓' if filters.sort == 'company' }}</a></th>
+          <th scope="col" class="col-title"><a class="th-sort" href="{{ sort_url('title') }}">Role &amp; summary{{ ' ↑' if filters.sort == 'title' and filters.dir == 'asc' else ' ↓' if filters.sort == 'title' }}</a></th>
+          <th scope="col"><a class="th-sort" href="{{ sort_url('location') }}">Location{{ ' ↑' if filters.sort == 'location' and filters.dir == 'asc' else ' ↓' if filters.sort == 'location' }}</a></th>
+          <th scope="col" class="num"><a class="th-sort" href="{{ sort_url('score') }}">Score{{ ' ↑' if filters.sort == 'score' and filters.dir == 'asc' else ' ↓' if filters.sort == 'score' }}</a></th>
+          <th scope="col"><a class="th-sort" href="{{ sort_url('status') }}">Status{{ ' ↑' if filters.sort == 'status' and filters.dir == 'asc' else ' ↓' if filters.sort == 'status' }}</a></th>
+          <th scope="col" class="num"><a class="th-sort" href="{{ sort_url('collected') }}">Seen{{ ' ↑' if filters.sort == 'collected' and filters.dir == 'asc' else ' ↓' if filters.sort == 'collected' }}</a></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for j in jobs %}
+          <tr class="row-link" data-href="/jobs/{{ j.id }}" tabindex="0">
+            <th scope="row">{{ ui.cell(j.company|titlecase) }}</th>
+            <td class="col-title">
+              <a class="link link--row" href="/jobs/{{ j.id }}" title="{{ j.title }}">{{ j.title|trim }}</a>
+              {% if j.is_remote %}<span class="tag">remote</span>{% endif %}
+              {% if j.category %}<span class="tag tag--quiet">{{ j.category|replace('_',' ') }}</span>{% endif %}
+              {% if j.summary %}<span class="jd-oneliner">{{ j.summary }}</span>{% endif %}
+            </td>
+            <td>{{ ui.cell(j.country or j.location) }}</td>
+            <td class="num">{{ ui.score(j.match_score, j.band) }}</td>
+            <td>
+              {{ ui.status(j.status) }}
+              {% if j.status == 'rejected' and j.reject_reason %}<span class="hint" title="{{ j.reject_reason }}">{{ j.reject_reason }}</span>{% endif %}
+            </td>
+            <td class="num muted nowrap">{{ j.collected_at|relative }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+# Target companies polled directly via free, no-auth ATS APIs.
+# Key = ATS provider, value = list of board slugs (usually the company name,
+# lowercase, no spaces). A wrong slug is harmless — the collector skips 404s.
+# Add/remove freely; this seed list is companies known to hire PMs globally.
+
+greenhouse:
+  # India-based / India-hiring — no visa barrier.
+  # Verified live 2026-07-20; most other Indian startups aren't on Greenhouse/Lever
+  # (they use Naukri or in-house portals), so JobSpy is the main India channel.
+  - postman
+  - phonepe
+  - groww
+  - slice
+  # Global
+  - stripe
+  - airbnb
+  - figma
+  - notion
+  - coinbase
+  - databricks
+  - dropbox
+  - duolingo
+  - robinhood
+  - anthropic
+  - gitlab
+  - cloudflare
+  - doordash
+  - instacart
+  - reddit
+  - pinterest
+  - twilio
+  - brex
+  - checkr
+  - flexport
+
+lever:
+  - palantir
+  - plaid
+  - zapier
+  - atlassian
+  - netlify
+  - mistral
+
+ashby:
+  # India-based (verified live)
+  - sarvam
+  - atlan
+  # Global
+  - openai
+  - linear
+  - ramp
+  - deel
+  - notion
+  - replit
+  - vercel
+  - perplexity-ai
+
+smartrecruiters:
+  - visa
+  - bosch
+  - ikea
+
+workable:
+  []
+
+recruitee:
+  []

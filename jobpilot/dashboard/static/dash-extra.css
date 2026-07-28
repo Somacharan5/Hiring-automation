@@ -1,0 +1,74 @@
+/* Re-spec 2026-07 additions: bell · to-dos · inbox · chips · new pills.
+   Loaded after style.css; reuses its design tokens. */
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.jd-oneliner { display: block; color: var(--ink-2); font-size: .82rem; margin-top: 3px; max-width: 64ch; }
+.reasons__row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0;
+  border-bottom: 1px solid var(--border); font-size: .86rem; }
+.reasons__row:last-child { border-bottom: 0; }
+
+/* Bell */
+.bell { position: relative; }
+.bell__badge { position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 9px; background: var(--bad); color: #fff; font-size: .66rem; font-weight: 700;
+  display: grid; place-items: center; line-height: 1; }
+.bell__menu { position: absolute; right: 0; top: calc(100% + 8px); width: 340px; max-width: 86vw; z-index: 60;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden; }
+.bell__head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;
+  border-bottom: 1px solid var(--border); font-size: .8rem; color: var(--ink-2); }
+.bell__list { max-height: 60vh; overflow-y: auto; }
+.bell__empty { padding: 18px 14px; color: var(--ink-3); font-size: .84rem; }
+.bell__item { display: flex; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--border);
+  text-decoration: none; color: inherit; }
+.bell__item:last-child { border-bottom: 0; }
+.bell__item:hover { background: var(--hover); }
+.bell__item.is-unread { background: var(--accent-wash); }
+.bell__kind { width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: var(--ink-3); flex: none; }
+.bell__kind--reply { background: var(--good); }
+.bell__kind--run_error { background: var(--bad); }
+.bell__kind--milestone { background: var(--band-good); }
+.bell__text { display: flex; flex-direction: column; gap: 2px; font-size: .84rem; min-width: 0; }
+.bell__sub { color: var(--ink-2); font-size: .8rem; }
+.bell__when { color: var(--ink-3); font-size: .74rem; }
+
+/* To-dos */
+.todo-form .field { margin-bottom: 10px; }
+.todo-list { list-style: none; margin: 0; padding: 0; }
+.todo { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.todo:last-child { border-bottom: 0; }
+.todo__check { display: flex; }
+.check-box { width: 20px; height: 20px; border: 1.6px solid var(--border-str); border-radius: 6px;
+  background: transparent; cursor: pointer; display: grid; place-items: center; color: #fff; padding: 0; }
+.check-box:hover { border-color: var(--accent); }
+.check-box--on { background: var(--good); border-color: var(--good); }
+.check-box--on svg { width: 13px; height: 13px; }
+.todo__body { flex: 1; min-width: 0; }
+.todo__title { margin: 0; font-size: .92rem; }
+.todo__note { margin: 2px 0 0; color: var(--ink-2); font-size: .82rem; }
+.todo--done .todo__title { text-decoration: line-through; color: var(--ink-3); }
+
+/* Inbox / replies */
+.reply { display: flex; gap: 14px; }
+.reply__gutter { display: flex; flex-direction: column; align-items: center; padding-top: 5px; }
+.reply__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-3); }
+.reply__dot--interested { background: var(--good); }
+.reply__dot--rejected { background: var(--bad); }
+.reply__dot--other { background: var(--warn); }
+.reply__main { flex: 1; min-width: 0; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.reply__head { display: flex; align-items: center; gap: 8px; }
+.reply__from { font-size: .95rem; }
+.reply__when { margin-left: auto; font-size: .76rem; }
+.reply__role { margin: 3px 0; font-size: .82rem; }
+.reply__subject { margin: 4px 0 2px; font-weight: 600; font-size: .9rem; }
+.reply__body { margin: 0; color: var(--ink-2); font-size: .86rem; }
+.reply__foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+
+/* Status pill variants (email pipeline + agent runs) */
+.pill--preparing_resume .pill__dot { background: var(--warn); }
+.pill--emailed .pill__dot { background: var(--band-good); }
+.pill--followup_1 .pill__dot, .pill--followup_2 .pill__dot { background: var(--band-mid); }
+.pill--replied .pill__dot, .pill--applied .pill__dot { background: var(--good); }
+.pill--denied .pill__dot, .pill--bounced .pill__dot, .pill--failed .pill__dot { background: var(--bad); }
+.pill--new .pill__dot { background: var(--ink-3); }
+.pill--dryrun .pill__dot { background: var(--warn); }

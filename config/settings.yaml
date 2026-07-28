@@ -1,0 +1,190 @@
+# ═══════════════════════════════════════════════════════════════════════
+# JobPilot settings — re-specced 2026-07-27
+# Target: Product Manager, FRESHER categories only (grad 2027) — new-grad,
+# internship→PPO, and graduate programs.  Channel: email only, autonomous.
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── Target countries ─────────────────────────────────────────────────
+# Priority markets first, then top-earning markets. Used to tag jobs by
+# country and to drive country-scoped aggregator searches.
+countries:
+  - "India"
+  - "Germany"
+  - "Netherlands"
+  - "United Arab Emirates"   # Dubai / UAE
+  - "Switzerland"
+  # top-earning additions
+  - "United States"
+  - "United Kingdom"
+  - "Ireland"
+  - "Canada"
+  - "Australia"
+  - "Singapore"
+  - "Luxembourg"
+  - "Norway"
+  - "Denmark"
+  - "Qatar"
+
+# ── Job search ───────────────────────────────────────────────────────
+search:
+  # Terms used by JobSpy / aggregator searches. Fresher / intern / grad slant.
+  terms:
+    - "product manager"
+    - "associate product manager"
+    - "product manager new grad"
+    - "graduate product manager"
+    - "product manager intern"
+    - "product management intern"
+    - "apm program"
+    - "product management graduate program"
+    - "product management trainee"
+    - "product owner"
+  locations:
+    - "India"
+    - "Bangalore, India"
+    - "Germany"
+    - "Netherlands"
+    - "Dubai, United Arab Emirates"
+    - "Switzerland"
+    - "United Kingdom"
+    - "Singapore"
+  include_remote: true
+  results_per_source: 40      # per term+location on JobSpy
+  hours_old: 168              # only jobs posted in the last 7 days
+
+# ── Hard filter (cheap, runs before the LLM) ─────────────────────────
+hard_filter:
+  # Title must contain at least one of these (case-insensitive)
+  title_must_contain_any:
+    - "product manager"
+    - "product owner"
+    - "product lead"          # kept for "assoc. product lead"; senior variants caught below
+    - "apm"
+    - "associate product"
+    - "product management"     # catches "product management graduate/trainee"
+  # Reject immediately if title contains any of these. NOTE: 'intern' is NO
+  # LONGER rejected — internship→PPO is a target. Seniority terms still are.
+  title_reject_any:
+    - "senior"
+    - "sr "
+    - "sr."
+    - "lead product"
+    - "director"
+    - "vp "
+    - "vice president"
+    - "principal"
+    - "staff product"
+    - "head of"
+    - "group product"
+    - "chief"
+  # Fresher cap: reject roles demanding more than this many years (best-effort).
+  # The user graduates 2027 — anything demanding real seniority is out.
+  max_years_required: 3
+
+# ── LLM matching + apply gate ────────────────────────────────────────
+matching:
+  # Leave blank to use the active provider's default (see .env LLM_PROVIDER).
+  model: "gemini-flash-lite-latest"
+  shortlist_threshold: 60     # score >= this → shortlisted = APPLY GATE (was 70)
+  max_jobs_per_run: 40        # cap LLM calls per run (cost control)
+  # Dashboard score buckets (Page 1 summary tiles).
+  score_buckets: [50, 70, 90]
+  # Skip roles that hard-require existing/local work authorization (no sponsorship).
+  # Grad programs + sponsorship-friendly roles are kept.
+  skip_hard_work_auth: true
+
+# ── Optional aggregator API keys (free signups; leave blank to skip) ─
+adzuna:
+  app_id: ""
+  app_key: ""
+
+# ── Resume tailoring ─────────────────────────────────────────────────
+tailoring:
+  output_dir: "output/resumes"
+  format: "pdf"               # pdf | docx | both
+  allow_fabrication: false    # never invent experience/skills/metrics
+  min_ats_score: 55
+  max_pages: 1
+  # Structured resume JSON schema the user will provide drives generation.
+  resume_schema_path: "config/resume_schema.json"
+
+# ── Outreach — EMAIL ONLY, AUTONOMOUS ────────────────────────────────
+outreach:
+  mode: "autonomous"          # autonomous = send without per-email approval
+  # DEV SAFETY: keep dry_run true until deployed & tested. The deploy step
+  # flips this to false. Even then, the first live run is draft-only (below).
+  dry_run: true
+  # One-time seatbelt: the very first live run DRAFTS instead of sends, so the
+  # personalisation can be eyeballed once. Flip to false after that first check.
+  first_run_draft_only: true
+  daily_send_cap: 20          # protects the Gmail sender from spam-flagging
+  min_score_to_contact: 60    # apply gate — mail every shortlisted role
+  # Never re-email a company/role already contacted, or an address that said no.
+  dedup: true
+  attach_portfolio: true
+  portfolio_path: "products Portfolio - Soma Charan.pdf"
+  portfolio_link: "https://portfolio-rho-lake-73.vercel.app/index.html"
+  from_name: "Soma Charan"
+  from_email: "iamsomacharan@gmail.com"   # sender + reply inbox (app-password account)
+  # Shown in the email signature (replies still come back to from_email above).
+  from_phone: "+91-9182935177"
+  signature_email: "soma.charan@mastersunion.org"
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  # Free-first email discovery: specific person → fallback to generic inbox.
+  finders: ["site_crawl", "github", "pattern", "hunter"]
+  generic_inbox_prefixes: ["careers", "jobs", "hr", "recruiting", "talent", "people"]
+
+# ── Follow-ups ───────────────────────────────────────────────────────
+followup:
+  interval_days: 3            # bump every 3 days
+  max_followups: 5            # then stop
+  # {company} is filled in at send time.
+  template: "Bumping this mail up, I am really looking forward to work with team of {company}."
+  # Stop following up the moment any reply arrives.
+  stop_on_reply: true
+
+# ── Inbound: reply capture (IMAP) ────────────────────────────────────
+inbox:
+  enabled: true
+  imap_host: "imap.gmail.com"
+  imap_port: 993
+  # Reads the same account we send from. Uses GMAIL_APP_PASSWORD from .env.
+  mailbox: "INBOX"
+  scan_days: 14               # look back this many days for new replies
+  # Classify replies into interested | rejected | other (no auto-answer).
+  classify: true
+
+# ── Scheduling (Oracle VM cron / APScheduler) ────────────────────────
+schedule:
+  timezone: "Asia/Kolkata"
+  scrape_at: "08:00"          # daily morning scrape → filter → score
+  email_at: "09:00"           # then generate resumes + send (after scoring)
+  followup_every_hours: 6     # check the follow-up queue this often
+  reply_scan_every_hours: 2   # poll the inbox this often for the bell
+
+# ── Parked channels (email-only for now; code kept, disabled) ────────
+linkedin:
+  enabled: false
+  session_file: ".linkedin_session.json"
+portal:
+  enabled: false
+
+# ── Recruiter email discovery tuning ─────────────────────────────────
+email_discovery:
+  sources: ["site_crawl", "github", "linkedin_names", "cse", "hunter"]
+  min_confidence_to_autosend: 70   # lowered to match the 60 apply gate posture
+  review_catch_all: true
+  bounce_scan_days: 30
+
+# ── Database ─────────────────────────────────────────────────────────
+# Neon (Postgres). Connection string lives in .env as DATABASE_URL; never
+# commit it. Falls back to local SQLite (jobpilot.db) when DATABASE_URL unset.
+database:
+  provider: "neon"            # neon | sqlite
+  # DATABASE_URL=postgresql://…  → set in .env
+
+# ── Dashboard ────────────────────────────────────────────────────────
+dashboard:
+  host: "127.0.0.1"
+  port: 8000
