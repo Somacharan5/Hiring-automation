@@ -13,17 +13,19 @@
 <section class="kpis kpis--compact" aria-label="Pipeline stages">
   {% set stage_labels = {'preparing_resume':'Preparing', 'emailed':'Emailed',
                          'replied':'Replied', 'denied':'Denied', 'failed':'Failed'} %}
+  {% set stage_icons = {'preparing_resume':'file', 'emailed':'send', 'replied':'reply',
+                        'denied':'x', 'failed':'alert'} %}
   {% for key, label in stage_labels.items() %}
-    <a class="tile tile--link {{ 'is-active' if filters.status == key }}" href="/applications?status={{ key }}">
+    <a class="tile tile--link {{ 'is-active' if filters.status == key }}" href="/applications?status={{ key }}" data-icon="{{ stage_icons[key] }}">
       <p class="tile__label">{{ label }}</p>
       <p class="tile__value tile__value--{{ key }}">{{ summary.by_status[key]|num }}</p>
     </a>
   {% endfor %}
-  <div class="tile">
+  <div class="tile" data-icon="clock">
     <p class="tile__label">Following up</p>
     <p class="tile__value">{{ summary.following_up|num }}</p>
   </div>
-  <a class="tile tile--link {{ 'is-active' if not filters.status }}" href="/applications">
+  <a class="tile tile--link {{ 'is-active' if not filters.status }}" href="/applications" data-icon="layers">
     <p class="tile__label">All</p>
     <p class="tile__value">{{ summary.total|num }}</p>
   </a>

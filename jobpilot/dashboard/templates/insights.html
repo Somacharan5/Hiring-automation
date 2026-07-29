@@ -11,12 +11,12 @@
 </div>
 
 <section class="kpis kpis--compact" aria-label="Totals">
-  <div class="tile"><p class="tile__label">Collected</p><p class="tile__value">{{ stats.totals.jobs|num }}</p></div>
-  <div class="tile"><p class="tile__label">Shortlisted ≥{{ stats.apply_gate }}</p><p class="tile__value">{{ stats.totals.shortlisted|num }}</p></div>
-  <div class="tile"><p class="tile__label">Emailed</p><p class="tile__value">{{ stats.totals.applied|num }}</p></div>
-  <div class="tile"><p class="tile__label">Replied</p><p class="tile__value tile__value--replied">{{ stats.totals.replied|num }}</p></div>
-  <div class="tile"><p class="tile__label">Companies</p><p class="tile__value">{{ stats.totals.companies|num }}</p></div>
-  <div class="tile"><p class="tile__label">Resumes</p><p class="tile__value">{{ stats.totals.resumes|num }}</p></div>
+  <div class="tile" data-icon="database"><p class="tile__label">Collected</p><p class="tile__value">{{ stats.totals.jobs|num }}</p></div>
+  <div class="tile" data-icon="star"><p class="tile__label">Shortlisted ≥{{ stats.apply_gate }}</p><p class="tile__value">{{ stats.totals.shortlisted|num }}</p></div>
+  <div class="tile" data-icon="send"><p class="tile__label">Emailed</p><p class="tile__value">{{ stats.totals.applied|num }}</p></div>
+  <div class="tile" data-icon="reply"><p class="tile__label">Replied</p><p class="tile__value tile__value--replied">{{ stats.totals.replied|num }}</p></div>
+  <div class="tile" data-icon="building"><p class="tile__label">Companies</p><p class="tile__value">{{ stats.totals.companies|num }}</p></div>
+  <div class="tile" data-icon="file"><p class="tile__label">Resumes</p><p class="tile__value">{{ stats.totals.resumes|num }}</p></div>
 </section>
 
 <div class="grid">

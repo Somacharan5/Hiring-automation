@@ -11,10 +11,10 @@
 </div>
 
 <section class="kpis kpis--compact" aria-label="Health summary">
-  <div class="tile"><p class="tile__label">Mode</p><p class="tile__value" style="font-size:1.1rem">{{ caps.mode|titlecase }}{% if caps.dry_run %} · dry-run{% endif %}</p></div>
-  <div class="tile"><p class="tile__label">Errors (24h)</p><p class="tile__value {{ 'tile__value--failed' if health.errors_24h }}">{{ health.errors_24h }}</p></div>
-  <div class="tile"><p class="tile__label">Daily email cap</p><p class="tile__value">{{ caps.email_cap }}</p></div>
-  <div class="tile"><p class="tile__label">Apply gate</p><p class="tile__value">{{ caps.apply_gate }}</p></div>
+  <div class="tile" data-icon="activity"><p class="tile__label">Mode</p><p class="tile__value" style="font-size:1.1rem">{{ caps.mode|titlecase }}{% if caps.dry_run %} · dry-run{% endif %}</p></div>
+  <div class="tile" data-icon="alert"><p class="tile__label">Errors (24h)</p><p class="tile__value {{ 'tile__value--failed' if health.errors_24h }}">{{ health.errors_24h }}</p></div>
+  <div class="tile" data-icon="send"><p class="tile__label">Daily email cap</p><p class="tile__value">{{ caps.email_cap }}</p></div>
+  <div class="tile" data-icon="gauge"><p class="tile__label">Apply gate</p><p class="tile__value">{{ caps.apply_gate }}</p></div>
 </section>
 
 <div class="grid">

@@ -17,23 +17,23 @@
 </div>
 
 <section class="kpis kpis--compact" aria-label="Score buckets">
-  <a class="tile tile--link {{ 'is-active' if not active_filters }}" href="/">
+  <a class="tile tile--link {{ 'is-active' if not active_filters }}" href="/" data-icon="database">
     <p class="tile__label">Total scraped</p>
     <p class="tile__value">{{ buckets.total|num }}</p>
   </a>
-  <a class="tile tile--link" href="/?min_score=50&sort=score&dir=desc">
+  <a class="tile tile--link" href="/?min_score=50&sort=score&dir=desc" data-icon="gauge">
     <p class="tile__label">Score ≥ 50</p>
     <p class="tile__value">{{ buckets.above_50|num }}</p>
   </a>
-  <a class="tile tile--link" href="/?min_score=70&sort=score&dir=desc">
+  <a class="tile tile--link" href="/?min_score=70&sort=score&dir=desc" data-icon="gauge">
     <p class="tile__label">Score ≥ 70</p>
     <p class="tile__value">{{ buckets.above_70|num }}</p>
   </a>
-  <a class="tile tile--link" href="/?min_score=90&sort=score&dir=desc">
+  <a class="tile tile--link" href="/?min_score=90&sort=score&dir=desc" data-icon="star">
     <p class="tile__label">Score ≥ 90</p>
     <p class="tile__value">{{ buckets.above_90|num }}</p>
   </a>
-  <a class="tile tile--link" href="/?status=shortlisted&sort=score&dir=desc">
+  <a class="tile tile--link" href="/?status=shortlisted&sort=score&dir=desc" data-icon="check">
     <p class="tile__label">Shortlisted (≥60)</p>
     <p class="tile__value tile__value--replied">{{ buckets.shortlisted|num }}</p>
   </a>
