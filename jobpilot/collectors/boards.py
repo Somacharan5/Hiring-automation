@@ -2,10 +2,27 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import requests
 
 from ..db import Job
 from .ats import UA, TIMEOUT, _strip_html, _title_matches
+
+
+def _ts(val) -> str | None:
+    """Best-effort → ISO timestamp for posted_at; None if unparseable (never breaks a batch)."""
+    if val is None or val == "":
+        return None
+    try:
+        if isinstance(val, (int, float)):
+            v = float(val)
+            if v > 1e12:            # milliseconds
+                v /= 1000
+            return datetime.fromtimestamp(v, tz=timezone.utc).isoformat()
+        return datetime.fromisoformat(str(val).strip().replace("Z", "+00:00")).isoformat()
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def remotive(keywords: list[str], log=print) -> list[Job]:
@@ -104,4 +121,75 @@ def adzuna(app_id: str, app_key: str, keywords: list[str], log=print) -> list[Jo
                 posted_at=j.get("created"),
             ))
     log(f"  [adzuna] {len(jobs)} matching roles")
+    return jobs
+
+
+def arbeitnow(keywords: list[str], log=print) -> list[Job]:
+    """Arbeitnow free job-board API — Europe-heavy (good for DE/CH/NL), remote + onsite."""
+    try:
+        resp = requests.get("https://www.arbeitnow.com/api/job-board-api", headers=UA, timeout=TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:  # noqa: BLE001
+        log(f"  [arbeitnow] skipped ({type(e).__name__}: {e})")
+        return []
+    jobs = []
+    for j in data.get("data", []):
+        title = j.get("title", "")
+        if not _title_matches(title, keywords):
+            continue
+        jobs.append(Job(
+            source="arbeitnow", company=j.get("company_name", "?"), title=title,
+            location=j.get("location") or "", is_remote=bool(j.get("remote")),
+            url=j.get("url"), description=_strip_html(j.get("description")),
+            posted_at=_ts(j.get("created_at"))))
+    log(f"  [arbeitnow] {len(jobs)} matching roles")
+    return jobs
+
+
+def jobicy(keywords: list[str], log=print) -> list[Job]:
+    """Jobicy free remote-jobs API (v2) — global remote, title-filtered."""
+    try:
+        resp = requests.get("https://jobicy.com/api/v2/remote-jobs?count=100", headers=UA, timeout=TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:  # noqa: BLE001
+        log(f"  [jobicy] skipped ({type(e).__name__}: {e})")
+        return []
+    jobs = []
+    for j in data.get("jobs", []):
+        title = j.get("jobTitle", "")
+        if not _title_matches(title, keywords):
+            continue
+        jobs.append(Job(
+            source="jobicy", company=j.get("companyName", "?"), title=title,
+            location=j.get("jobGeo") or "Remote", is_remote=True,
+            url=j.get("url") or f"https://jobicy.com/jobs/{j.get('jobSlug', '')}",
+            description=_strip_html(j.get("jobDescription")), posted_at=_ts(j.get("pubDate"))))
+    log(f"  [jobicy] {len(jobs)} matching roles")
+    return jobs
+
+
+def himalayas(keywords: list[str], log=print) -> list[Job]:
+    """Himalayas free remote-jobs API — global remote; carries salary fields."""
+    try:
+        resp = requests.get("https://himalayas.app/jobs/api?limit=100", headers=UA, timeout=TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:  # noqa: BLE001
+        log(f"  [himalayas] skipped ({type(e).__name__}: {e})")
+        return []
+    jobs = []
+    for j in data.get("jobs", []):
+        title = j.get("title", "")
+        if not _title_matches(title, keywords):
+            continue
+        loc = j.get("locationRestrictions")
+        loc = ", ".join(loc) if isinstance(loc, list) else (loc or "Remote")
+        jobs.append(Job(
+            source="himalayas", company=j.get("companyName", "?"), title=title,
+            location=loc, is_remote=True,
+            url=j.get("applicationLink") or j.get("guid"),
+            description=_strip_html(j.get("description")), posted_at=_ts(j.get("pubDate"))))
+    log(f"  [himalayas] {len(jobs)} matching roles")
     return jobs

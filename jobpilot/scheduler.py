@@ -48,7 +48,9 @@ def _safe(fn, name: str, **kwargs) -> None:
 
 
 def daily_cycle() -> None:
-    _safe(cmd_agent_run, "agent", no_jobspy=True, limit=None)
+    # JobSpy included (LinkedIn/Indeed/Naukri) — gated by jobspy.enabled in settings.
+    # Use residential proxies on the VM (jobspy.proxies) to avoid datacenter blocks.
+    _safe(cmd_agent_run, "agent", no_jobspy=False, limit=None)
 
 
 def followup_cycle() -> None:

@@ -52,6 +52,27 @@ search:
   results_per_source: 40      # per term+location on JobSpy
   hours_old: 168              # only jobs posted in the last 7 days
 
+# ── JobSpy: LinkedIn / Indeed / Naukri / Google (public guest pages) ──
+# Higher volume — especially India fresher roles via Naukri. Scrapes login-free
+# pages (your LinkedIn account is never used), but is IP rate-limit sensitive:
+# keep the matrix modest and add residential proxies on the VM.
+jobspy:
+  enabled: true
+  sites: ["linkedin", "indeed", "google"]   # naukri auto-added for India locations
+  naukri_for_india: true
+  fetch_descriptions: true    # needed for scoring, tailoring, and the work-auth filter
+  # Fresher-focused terms, kept short to limit rate-limit exposure.
+  terms:
+    - "associate product manager"
+    - "product manager"
+    - "product manager intern"
+    - "graduate product manager"
+    - "apm"
+  results_wanted: 25
+  # Residential proxies STRONGLY recommended on the Oracle VM (datacenter IPs get
+  # blocked fast). Format: "http://user:pass@host:port". Leave empty locally.
+  proxies: []
+
 # ── Hard filter (cheap, runs before the LLM) ─────────────────────────
 hard_filter:
   # Title must contain at least one of these (case-insensitive)

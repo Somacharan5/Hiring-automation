@@ -69,6 +69,14 @@ and reply-scans every 2h. Watch it: `journalctl -u jobpilot-scheduler -f`.
 [Caddy](https://caddyserver.com) in front for HTTPS + basic-auth, or restrict the
 Oracle ingress rule to your own IP. Don't leave it public and unauthenticated.
 
+## 7b. JobSpy on the VM (LinkedIn / Indeed / Naukri)
+
+The daily cycle scrapes public job pages via JobSpy. From a datacenter IP these get
+rate-limited quickly (Naukri already needs recaptcha), so on the VM set **residential
+proxies** in `config/settings.yaml` → `jobspy.proxies: ["http://user:pass@host:port"]`.
+Without proxies, keep `jobspy.enabled: true` for LinkedIn/Indeed but expect Naukri to
+fail gracefully. To turn scraping off entirely: `jobspy.enabled: false`.
+
 ## 8. Going live (sending real emails)
 Everything above runs in **dry-run** — it prepares drafts + tailored resumes and
 logs them, but sends nothing. When you're ready:

@@ -67,15 +67,23 @@ def cmd_collect(args) -> None:
     print("Collecting from remote boards…")
     total_new += db.upsert_jobs(conn, boards.remotive(keywords))
     total_new += db.upsert_jobs(conn, boards.remoteok(keywords))
+    total_new += db.upsert_jobs(conn, boards.arbeitnow(keywords))
+    total_new += db.upsert_jobs(conn, boards.jobicy(keywords))
+    total_new += db.upsert_jobs(conn, boards.himalayas(keywords))
     adz = settings.get("adzuna", {})
     total_new += db.upsert_jobs(conn, boards.adzuna(adz.get("app_id", ""), adz.get("app_key", ""), keywords))
 
-    if not args.no_jobspy:
-        print("Collecting via JobSpy (LinkedIn/Indeed/Google — the slow part)…")
+    js = settings.get("jobspy", {}) or {}
+    if not args.no_jobspy and js.get("enabled", True):
+        print("Collecting via JobSpy (LinkedIn/Indeed/Naukri/Google — the slow part)…")
         total_new += db.upsert_jobs(conn, jobspy_collector.collect(
-            terms=search["terms"], locations=search["locations"],
-            results_wanted=search["results_per_source"], hours_old=search["hours_old"],
-            include_remote=search["include_remote"]))
+            terms=js.get("terms") or search["terms"],
+            locations=search["locations"],
+            results_wanted=js.get("results_wanted", search["results_per_source"]),
+            hours_old=search["hours_old"], include_remote=search["include_remote"],
+            sites=js.get("sites"), fetch_descriptions=js.get("fetch_descriptions", True),
+            naukri_for_india=js.get("naukri_for_india", True),
+            proxies=js.get("proxies") or None))
 
     print(f"\n✔ Collected — {total_new} new jobs. Totals: {db.counts_by_status(conn)}")
 
