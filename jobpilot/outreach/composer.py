@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from ..db import contacts_for_company, get_job, latest_resume_for_job, upsert_application
+from ..db import get_job, latest_resume_for_job, upsert_application
 from ..llm import structured_call
 from ..profile import load_profile_for_matching
 
@@ -326,59 +326,3 @@ def render_draft(subject: str, body: str, to: str | None = None,
         lines.append(f"Attach:  {', '.join(Path(a).name for a in attachments)}")
     lines += ["-" * 68, body.strip(), "-" * 68]
     return "\n".join(lines)
-
-
-def compose_for_shortlist(conn, settings: dict | None = None, limit: int | None = None,
-                          min_score: int | None = None) -> list[dict]:
-    """Draft emails for shortlisted jobs that don't have an application row yet.
-
-    Discovers contacts as needed. Persists drafts. Sends nothing.
-    """
-    from .discovery import discover_and_verify, best_contact_for
-
-    cfg = (settings or {}).get("outreach", {}) if settings else {}
-    threshold = min_score if min_score is not None else cfg.get("min_score_to_contact", 75)
-
-    rows = conn.execute(
-        "SELECT j.* FROM jobs j LEFT JOIN applications a "
-        "  ON a.job_id = j.id AND a.channel = 'email' "
-        "WHERE j.status = 'shortlisted' AND COALESCE(j.match_score, 0) >= %s "
-        "  AND a.id IS NULL ORDER BY j.match_score DESC",
-        (threshold,),
-    ).fetchall()
-    if limit:
-        rows = rows[:limit]
-
-    results: list[dict] = []
-    for job in rows:
-        print(f"\n▸ {job['company']} — {job['title'].strip()}  [{job['match_score']}]")
-        try:
-            discover_and_verify(conn, job["company"], job_url=job["url"], settings=settings)
-        except Exception as e:  # noqa: BLE001 — discovery must never kill the batch
-            print(f"  ✗ discovery failed: {type(e).__name__}: {e}")
-
-        # Only an address that clears the auto-send bar gets attached. Anything
-        # weaker — unverified guesses, catch-all domains, misdirected inboxes —
-        # drafts with no recipient and waits in the review queue. Never fall back
-        # to "any address we found"; that is how you bounce and burn the sender.
-        contact = best_contact_for(conn, job["company"], require_auto_sendable=True,
-                                   settings=settings)
-        if contact:
-            row = next((c for c in contacts_for_company(conn, job["company"])
-                        if c["email"] == contact["email"]), None)
-            contact = dict(contact, id=row["id"] if row else None)
-        else:
-            print("  ⓘ no auto-sendable address — drafting for review")
-        try:
-            draft = compose_email(conn, job["id"], contact, settings)
-        except Exception as e:  # noqa: BLE001
-            print(f"  ✗ compose failed: {type(e).__name__}: {e}")
-            results.append({"job_id": job["id"], "company": job["company"], "error": str(e)})
-            continue
-        print(render_draft(draft.subject, draft.body,
-                           to=contact["email"] if contact else None))
-        results.append({"job_id": job["id"], "company": job["company"],
-                        "contact_id": contact["id"] if contact else None,
-                        "verified_contact": bool(contact and contact["verified"]),
-                        "subject": draft.subject})
-    return results
