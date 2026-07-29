@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from ..db import followups_due, record_followup, sent_today_count
+from .composer import _signature_lines
 from .send import live_sending_enabled, smtp_send
 
 DEFAULT_TEMPLATE = "Bumping this mail up, I am really looking forward to work with team of {company}."
@@ -21,10 +22,8 @@ def _bump_body(settings: dict, company: str) -> str:
     tmpl = (settings.get("followup", {}) or {}).get("template") or DEFAULT_TEMPLATE
     line = tmpl.format(company=company)
     name = cfg.get("from_name", "")
-    phone = cfg.get("from_phone", "")
-    email = cfg.get("signature_email", "")
-    sig = f"{phone} · {email}".strip(" ·")
-    return f"{line}\n\nBest,\n{name}" + (f"\n{sig}" if sig else "")
+    sig = "\n".join(_signature_lines(cfg))
+    return f"{line}\n\nBest,\n{name}\n{sig}"
 
 
 def run_followups(conn, settings: dict, limit: int | None = None) -> dict:

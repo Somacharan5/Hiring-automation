@@ -124,6 +124,7 @@ outreach:
   attach_portfolio: true
   portfolio_path: "products Portfolio - Soma Charan.pdf"
   portfolio_link: "https://portfolio-rho-lake-73.vercel.app/index.html"
+  github: "https://github.com/Somacharan5"
   from_name: "Soma Charan"
   from_email: "iamsomacharan@gmail.com"   # sender + reply inbox (app-password account)
   # Shown in the email signature (replies still come back to from_email above).

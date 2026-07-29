@@ -36,6 +36,8 @@ def _signature_lines(cfg: dict) -> list[str]:
     lines = [f"{phone} · {email}"]
     if cfg.get("portfolio_link"):
         lines.append(f"Portfolio: {cfg['portfolio_link']}")
+    if cfg.get("github"):
+        lines.append(f"GitHub: {cfg['github']}")
     return lines
 
 # Phrases that instantly mark an email as machine-written boilerplate.
@@ -55,8 +57,10 @@ BANNED = (
     "would welcome a brief conversation", "at your earliest convenience",
 )
 
-SYSTEM = """You are {from_name}, writing one short email to one recruiter about one job.
-Not a cover letter. Not marketing copy. An email a busy person will actually read.
+SYSTEM = """You are {from_name}, writing one short, direct application email to one recruiter
+for one specific role. Make the application intent clear and lead with the role — this is an
+application, not a networking note. Not a cover letter, not marketing copy: a concise email a
+busy person will actually read and act on.
 
 TRUTH (non-negotiable)
 - Every claim must already exist in the CANDIDATE PROFILE below. Never invent a
@@ -67,14 +71,17 @@ TRUTH (non-negotiable)
 
 SHAPE (follow exactly)
   Line 1:  Hi <recruiter's first name>,     (or "Hi there," if you weren't given one)
-  Para 1:  ONE sentence. The single most relevant thing the candidate actually did,
-           with its real number and the real company name. No preamble, no throat-clearing.
-  Para 2:  2-3 short sentences, and it must NOT begin with "I". Start with the team,
-           product surface, or problem named in the job description ("The ProServ team's
-           push to…", "Building the risk tooling for…"), then connect it to one more
-           concrete thing the candidate actually built, with its real number.
-           Never write "I am interested in the … role" — the subject line already said that.
-  Para 3:  ONE sentence. A light ask — happy to send more, or a 15-minute call.
+  Para 1:  TWO short sentences. First: state plainly that you're applying for the exact role
+           by name (e.g. "I'm applying for the Product Manager, Growth role at Sarvam."). Second:
+           the single most relevant thing the candidate actually did for THIS role, with its
+           real number and real company name.
+  Para 2:  2-3 short sentences that must NOT begin with "I". Start with the team, product
+           surface, or problem named in the job description ("The activation team's push to…",
+           "Building the risk tooling for…"), then connect it to one more concrete thing the
+           candidate actually built, with its real number.
+  Para 3:  ONE direct sentence. Point to the attached resume and ask for the next step — a
+           short call, or to be considered for the role. Confident, not tentative ("I'd welcome
+           a quick call to walk through…"), never "happy to send more if that's useful".
   Sign-off: "Best," then "{from_name}" on its own line. Nothing else. No phone,
            no links, no title block.
 
@@ -95,7 +102,7 @@ VOICE
   "hope this email finds you well", "perfect fit", "leverage", "wealth of experience",
   "aligns with", "for your review", "I specialize in", "proven track record",
   "at your earliest convenience", "cutting-edge", "best-in-class".
-- Mention the attached resume at most once, in passing, only if it fits naturally.
+- Reference the attached resume once, in the closing ask — it holds the detail; the email is the pitch.
 
 SUBJECT
 - 4-9 words. Sentence case. Names the role plus one hook the recruiter would recognise.
