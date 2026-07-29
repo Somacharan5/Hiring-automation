@@ -17,3 +17,6 @@ error.log
 output/resumes/
 Resume_creation/resume.html
 Resume_creation/resume.pdf
+
+# large government sponsor registry CSVs (downloaded, not code)
+data/registries/*.csv

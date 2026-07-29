@@ -318,7 +318,8 @@ def search_jobs(conn: psycopg.Connection, *, status: str = "", source: str = "",
     dir_sql = "ASC" if direction.lower() == "asc" else "DESC"
     null_guard = f"({col} IS NULL), " if sort == "score" else ""
     sql = (f"SELECT id, source, company, title, location, country, category, is_remote, url, "
-           f"status, reject_reason, match_score, summary, collected_at, posted_at FROM jobs "
+           f"status, reject_reason, match_score, summary, sponsorship_signal, company_domain, "
+           f"collected_at, posted_at FROM jobs "
            f"{'WHERE ' + ' AND '.join(where) if where else ''} "
            f"ORDER BY {null_guard}{col} {dir_sql}, LOWER(company) ASC LIMIT %s")
     params.append(int(limit))

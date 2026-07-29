@@ -32,6 +32,28 @@ greenhouse:
   - brex
   - checkr
   - flexport
+  # Added 2026-07-29 — more PM-hiring scale-ups on Greenhouse (wrong slugs just 404 + skip)
+  - asana
+  - samsara
+  - gusto
+  - benchling
+  - affirm
+  - discord
+  - faire
+  - rippling
+  - airtable
+  - mixpanel
+  - amplitude
+  - retool
+  - vanta
+  - webflow
+  - chime
+  - nextdoor
+  - opendoor
+  - squarespace
+  - grammarly
+  - gopuff
+  - wealthfront
 
 lever:
   - palantir
@@ -54,6 +76,11 @@ ashby:
   - replit
   - vercel
   - perplexity-ai
+  - cursor
+  - watershed
+  - sierra
+  - clay
+  - mercor
 
 smartrecruiters:
   - visa

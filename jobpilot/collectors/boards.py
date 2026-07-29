@@ -83,7 +83,8 @@ def remoteok(keywords: list[str], log=print) -> list[Job]:
     return jobs
 
 
-ADZUNA_COUNTRIES = ["us", "gb", "in", "sg", "ae"]
+# Adzuna-supported country indexes matching our targets (UAE/ae is not an Adzuna index).
+ADZUNA_COUNTRIES = ["us", "gb", "in", "sg", "de", "nl", "ch", "ca", "au"]
 
 
 def adzuna(app_id: str, app_key: str, keywords: list[str], log=print) -> list[Job]:

@@ -72,3 +72,6 @@
 .pill--denied .pill__dot, .pill--bounced .pill__dot, .pill--failed .pill__dot { background: var(--bad); }
 .pill--new .pill__dot { background: var(--ink-3); }
 .pill--dryrun .pill__dot { background: var(--warn); }
+
+/* Visa-sponsorship confirmed tag */
+.tag--sponsor { color: var(--good-ink); border-color: color-mix(in srgb, var(--good) 40%, transparent); }

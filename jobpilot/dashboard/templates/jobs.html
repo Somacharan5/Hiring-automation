@@ -121,6 +121,9 @@
               <a class="link link--row" href="/jobs/{{ j.id }}" title="{{ j.title }}">{{ j.title|trim }}</a>
               {% if j.is_remote %}<span class="tag">remote</span>{% endif %}
               {% if j.category %}<span class="tag tag--quiet">{{ j.category|replace('_',' ') }}</span>{% endif %}
+              {% if j.sponsorship_signal == 'registry_confirmed' %}<span class="tag tag--sponsor" title="Visa sponsorship confirmed (registry or Gulf)">✓ sponsor</span>
+              {% elif j.sponsorship_signal == 'jd_mentioned' %}<span class="tag tag--quiet" title="JD mentions sponsorship / relocation">sponsor?</span>
+              {% elif j.sponsorship_signal == 'likely_no' %}<span class="tag tag--quiet" title="JD requires existing work authorization">no visa</span>{% endif %}
               {% if j.summary %}<span class="jd-oneliner">{{ j.summary }}</span>{% endif %}
             </td>
             <td>{{ ui.cell(j.country or j.location) }}</td>

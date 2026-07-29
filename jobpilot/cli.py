@@ -93,6 +93,7 @@ def cmd_collect(args) -> None:
 def cmd_match(args) -> None:
     from .matching.llm_scorer import Scorer
     from .profile import load_profile_for_matching
+    from .sponsorship import classify as sponsorship_classify
 
     settings = load_yaml(SETTINGS_PATH)
     m_cfg = settings["matching"]
@@ -110,6 +111,8 @@ def cmd_match(args) -> None:
             db.set_status(conn, row["id"], "rejected", reason)
         else:
             db.set_status(conn, row["id"], "screened")
+            sig, reg = sponsorship_classify(row["company"], row["description"], row["location"])
+            db.set_job_sponsorship(conn, row["id"], sig, reg)
             passed += 1
     print(f"Hard filter: {passed}/{len(new_jobs)} new jobs passed")
 

@@ -159,6 +159,15 @@ def set_job_classification(conn: psycopg.Connection, job_id: str, *,
     conn.commit()
 
 
+def set_job_sponsorship(conn: psycopg.Connection, job_id: str, signal: str,
+                        registry_match: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE jobs SET sponsorship_signal = %s, sponsorship_registry_match = %s WHERE id = %s",
+            (signal, registry_match, job_id))
+    conn.commit()
+
+
 def counts_by_status(conn: psycopg.Connection) -> dict[str, int]:
     with conn.cursor() as cur:
         cur.execute("SELECT status, COUNT(*) AS n FROM jobs GROUP BY status")

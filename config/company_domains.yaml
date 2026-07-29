@@ -1,0 +1,47 @@
+# Company → email domain overrides for outreach discovery.
+# Checked FIRST by resolve_domain, before URL-host and slug-guessing — this is how
+# we hit sarvam.ai instead of guessing sarvam.com. Add any company you shortlist
+# whose domain the guesser gets wrong. Keys are matched case-insensitively.
+
+sarvam: sarvam.ai
+postman: postman.com
+phonepe: phonepe.com
+groww: groww.in
+slice: sliceit.com
+atlan: atlan.com
+scoutit: scoutit.io
+snapdeal: snapdeal.com
+recro: recro.io
+
+# global
+stripe: stripe.com
+airbnb: airbnb.com
+figma: figma.com
+notion: notion.so
+coinbase: coinbase.com
+databricks: databricks.com
+dropbox: dropbox.com
+duolingo: duolingo.com
+robinhood: robinhood.com
+anthropic: anthropic.com
+gitlab: gitlab.com
+cloudflare: cloudflare.com
+doordash: doordash.com
+instacart: instacart.com
+reddit: reddit.com
+pinterest: pinterest.com
+twilio: twilio.com
+brex: brex.com
+flexport: flexport.com
+palantir: palantir.com
+plaid: plaid.com
+zapier: zapier.com
+atlassian: atlassian.com
+mistral: mistral.ai
+openai: openai.com
+linear: linear.app
+ramp: ramp.com
+deel: deel.com
+replit: replit.com
+vercel: vercel.com
+perplexity-ai: perplexity.ai

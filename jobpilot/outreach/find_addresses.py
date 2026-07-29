@@ -10,9 +10,24 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
+from pathlib import Path
 from urllib.parse import urlparse
 
 from ..db import add_contact, contacts_for_company
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+_DOMAIN_MAP_PATH = ROOT / "config" / "company_domains.yaml"
+
+
+@lru_cache(maxsize=1)
+def _domain_map() -> dict[str, str]:
+    """Curated company → email-domain overrides (checked before any guessing)."""
+    try:
+        import yaml
+        data = yaml.safe_load(_DOMAIN_MAP_PATH.read_text()) or {}
+        return {str(k).lower().strip(): str(v).strip() for k, v in data.items()}
+    except Exception:  # noqa: BLE001
+        return {}
 
 # Hosts that are the ATS/aggregator, never the employer's own mail domain.
 _ATS_HOSTS = (
@@ -61,7 +76,13 @@ def has_mx(domain: str) -> bool:
 
 
 def resolve_domain(company: str, job_url: str | None = None) -> str | None:
-    """First candidate domain that actually has MX records, or None."""
+    """Curated override → first MX-valid candidate (URL host, then slug+TLDs). None if nothing.
+
+    The override map is what makes discovery hit sarvam.ai instead of guessing sarvam.com.
+    """
+    override = _domain_map().get((company or "").lower().strip())
+    if override:
+        return override
     for d in candidate_domains(company, job_url):
         if has_mx(d):
             return d
@@ -78,6 +99,11 @@ def discover_generic(conn, company: str, job_url: str | None = None,
     domain = resolve_domain(company, job_url)
     if not domain:
         return []
+
+    with conn.cursor() as cur:      # record the domain on the company's jobs (schema + dashboard)
+        cur.execute("UPDATE jobs SET company_domain = %s WHERE company = %s AND company_domain IS NULL",
+                    (domain, company))
+    conn.commit()
 
     prefixes = ((settings or {}).get("outreach", {}) or {}).get("generic_inbox_prefixes")
     generic = ([(p, 70 if p == "careers" else 62) for p in prefixes] if prefixes else _GENERIC)
