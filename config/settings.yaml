@@ -114,7 +114,9 @@ matching:
   # Grad programs + sponsorship-friendly roles are kept.
   skip_hard_work_auth: true
 
-# ── Optional aggregator API keys (free signups; leave blank to skip) ─
+# ── Adzuna (9-country coverage + salary) ─────────────────────────────
+# Keys go in .env (preferred, gitignored): ADZUNA_APP_ID / ADZUNA_APP_KEY.
+# These settings values are a fallback only — leave blank to keep keys out of git.
 adzuna:
   app_id: ""
   app_key: ""

@@ -70,8 +70,11 @@ def cmd_collect(args) -> None:
     total_new += db.upsert_jobs(conn, boards.arbeitnow(keywords))
     total_new += db.upsert_jobs(conn, boards.jobicy(keywords))
     total_new += db.upsert_jobs(conn, boards.himalayas(keywords))
+    import os
     adz = settings.get("adzuna", {})
-    total_new += db.upsert_jobs(conn, boards.adzuna(adz.get("app_id", ""), adz.get("app_key", ""), keywords))
+    adz_id = os.environ.get("ADZUNA_APP_ID") or adz.get("app_id", "")
+    adz_key = os.environ.get("ADZUNA_APP_KEY") or adz.get("app_key", "")
+    total_new += db.upsert_jobs(conn, boards.adzuna(adz_id, adz_key, keywords))
 
     js = settings.get("jobspy", {}) or {}
     if not args.no_jobspy and js.get("enabled", True):
