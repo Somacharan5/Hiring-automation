@@ -134,12 +134,9 @@ tailoring:
 # ── Outreach — EMAIL ONLY, AUTONOMOUS ────────────────────────────────
 outreach:
   mode: "autonomous"          # autonomous = send without per-email approval
-  # DEV SAFETY: keep dry_run true until deployed & tested. The deploy step
-  # flips this to false. Even then, the first live run is draft-only (below).
-  dry_run: true
-  # One-time seatbelt: the very first live run DRAFTS instead of sends, so the
-  # personalisation can be eyeballed once. Flip to false after that first check.
-  first_run_draft_only: true
+  # LIVE (2026-07-29): sending enabled after the user reviewed the Sarvam emails.
+  dry_run: false
+  first_run_draft_only: false
   daily_send_cap: 20          # protects the Gmail sender from spam-flagging
   min_score_to_contact: 60    # apply gate — mail every shortlisted role
   # Never re-email a company/role already contacted, or an address that said no.
