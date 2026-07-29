@@ -30,6 +30,17 @@
     });
   }
 
+  // ── Mobile sidenav toggle ───────────────────────────────────────────
+  const sidenavBtn = $(".js-sidenav");
+  const sidenav = $("[data-sidenav]");
+  if (sidenavBtn && sidenav) {
+    sidenavBtn.addEventListener("click", (e) => { e.stopPropagation(); sidenav.classList.toggle("is-open"); });
+    document.addEventListener("click", (e) => {
+      if (sidenav.classList.contains("is-open") && !sidenav.contains(e.target) && e.target !== sidenavBtn)
+        sidenav.classList.remove("is-open");
+    });
+  }
+
   // ── Copy buttons ────────────────────────────────────────────────────
   $$(".js-copy").forEach((btn) => {
     btn.addEventListener("click", () => {
