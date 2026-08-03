@@ -16,6 +16,7 @@ import copy
 import difflib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -207,6 +208,13 @@ def _slug(text: str, limit: int = 40) -> str:
     return s[:limit].strip("-") or "role"
 
 
+def _fname(text: str, limit: int = 50) -> str:
+    """Filename-friendly but case-preserved (e.g. 'Product-Manager-Growth')."""
+    s = re.sub(r"[^\w\s-]", "", (text or "")).strip()
+    s = re.sub(r"[\s_]+", "-", s)
+    return s[:limit].strip("-") or "x"
+
+
 def tailor_and_render(conn, job_id: str, settings: dict | None = None,
                       out_dir: Path | None = None, model: str | None = None) -> dict:
     """Tailor + render a per-job PDF via the kit; record it. Returns a summary."""
@@ -223,7 +231,8 @@ def tailor_and_render(conn, job_id: str, settings: dict | None = None,
     out_dir = out_dir or (ROOT / "output" / "resumes")
     out_dir.mkdir(parents=True, exist_ok=True)
     name = master.get("header", {}).get("name", "resume")
-    stem = f"{_slug(name)}_{_slug(job['company'])}_{_slug(job['title'])}_{job_id[:8]}"
+    # {Company}_{Role}_{DateCreated}_{Name} — e.g. Sarvam_Product-Manager-Growth_2026-08-03_Soma-Charan
+    stem = f"{_fname(job['company'])}_{_fname(job['title'])}_{datetime.now():%Y-%m-%d}_{_fname(name)}"
     pdf_path = out_dir / f"{stem}.pdf"
     json_path = out_dir / f"{stem}.json"
     json_path.write_text(json.dumps(tailored, ensure_ascii=False, indent=2), encoding="utf-8")

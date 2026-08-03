@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as ui %}
+{% block title %}Resumes · JobPilot{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Resumes</h1>
+    <p class="page-sub">Every resume the agent tailored per job — preview it here, or download.
+      Named <code>Company_Role_Date_Name</code>.</p>
+  </div>
+</div>
+
+{% if not resumes %}
+  <div class="card">
+    {{ ui.empty("No tailored resumes yet",
+        "When a job scores at or above the apply gate, the agent tailors your resume for that exact role — every version shows up here.",
+        "python -m jobpilot tailor", "file") }}
+  </div>
+{% else %}
+{% set cur = (resumes | selectattr('id', 'equalto', selected) | first) or resumes[0] %}
+<div class="resume-lib">
+  <aside class="resume-list">
+    {% for r in resumes %}
+      <a class="resume-item {{ 'is-active' if r.id == cur.id }}" href="/resumes?selected={{ r.id }}">
+        <div class="resume-item__top">
+          <strong class="trunc">{{ r.company|titlecase }}</strong>
+          {{ ui.score(r.match_score, r.band) }}
+        </div>
+        <div class="resume-item__role trunc" title="{{ r.title }}">{{ r.title }}</div>
+        <div class="resume-item__meta">
+          <span>{{ r.created_at|date }}</span>
+          {% if r.ats_score %}<span>· ATS {{ r.ats_score }}</span>{% endif %}
+          {% if not r.has_file %}<span class="hint hint--bad">file missing</span>{% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </aside>
+
+  <section class="resume-preview">
+    <div class="resume-preview__bar">
+      <span class="resume-preview__name trunc" title="{{ cur.filename }}">{{ cur.filename }}</span>
+      {% if cur.has_file %}
+        <div class="resume-preview__actions">
+          <a class="btn btn--ghost btn--sm" href="/resumes/{{ cur.id }}/file" target="_blank" rel="noopener">Open&nbsp;↗</a>
+          <a class="btn btn--sm" href="/resumes/{{ cur.id }}/file?download=1">Download</a>
+        </div>
+      {% endif %}
+    </div>
+    {% if cur.has_file %}
+      <iframe class="resume-frame" src="/resumes/{{ cur.id }}/file" title="Resume preview"></iframe>
+    {% else %}
+      <div class="resume-frame resume-frame--empty">
+        <p>This resume's PDF isn't on disk anymore. Re-tailor the job to regenerate it.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endif %}
+{% endblock %}

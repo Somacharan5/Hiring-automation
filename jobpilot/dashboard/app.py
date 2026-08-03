@@ -17,7 +17,7 @@ from urllib.parse import parse_qs, urlencode
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -255,6 +255,29 @@ def create_app(settings_path: Path | None = None) -> FastAPI:
         import yaml
         raw = yaml.safe_load(cfg_file.read_text()) or {}
         return page(request, "settings.html", conn, nav="settings", cfg=raw)
+
+    @app.get("/resumes", response_class=HTMLResponse)
+    def resumes_page(request: Request, selected: int | None = Query(None),
+                     conn: psycopg.Connection = Depends(get_conn)):
+        items = queries.resumes(conn)
+        if selected is None and items:
+            selected = items[0]["id"]
+        return page(request, "resumes.html", conn, nav="resumes",
+                    resumes=items, selected=selected)
+
+    @app.get("/resumes/{resume_id}/file")
+    def resume_file(resume_id: int, download: int = Query(0),
+                    conn: psycopg.Connection = Depends(get_conn)):
+        row = queries.resume_row(conn, resume_id)
+        if not row or not row.get("pdf_path"):
+            raise HTTPException(status_code=404, detail="Resume not found")
+        pdf = Path(row["pdf_path"])
+        if not pdf.exists():
+            raise HTTPException(status_code=404, detail="Resume file is missing on disk")
+        if download:
+            return FileResponse(pdf, media_type="application/pdf", filename=pdf.name)
+        return FileResponse(pdf, media_type="application/pdf",
+                            headers={"Content-Disposition": f'inline; filename="{pdf.name}"'})
 
     # ── JSON ─────────────────────────────────────────────────────────
 

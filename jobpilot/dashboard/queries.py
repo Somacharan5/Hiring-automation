@@ -444,3 +444,26 @@ def todos(conn: psycopg.Connection, include_done: bool = False) -> list[dict[str
     if not include_done:
         sql += " WHERE done = FALSE"
     return _rows(conn, sql + " ORDER BY done, created_at DESC")
+
+
+# ── Resumes (tailored library) ───────────────────────────────────────
+
+def resumes(conn: psycopg.Connection) -> list[dict[str, Any]]:
+    """Every tailored resume, newest first, with its job context and file state."""
+    from pathlib import Path
+    rows = _rows(conn, """
+        SELECT r.id, r.pdf_path, r.json_path, r.ats_score, r.created_at,
+               j.id AS job_id, j.company, j.title, j.match_score
+        FROM tailored_resumes r JOIN jobs j ON j.id = r.job_id
+        ORDER BY r.created_at DESC""")
+    for r in rows:
+        r["band"] = band_for(r["match_score"])
+        r["has_file"] = bool(r["pdf_path"]) and Path(r["pdf_path"]).exists()
+        r["filename"] = Path(r["pdf_path"]).name if r["pdf_path"] else None
+    return rows
+
+
+def resume_row(conn: psycopg.Connection, resume_id: int) -> dict[str, Any] | None:
+    return _one(conn, """
+        SELECT r.*, j.company, j.title FROM tailored_resumes r
+        JOIN jobs j ON j.id = r.job_id WHERE r.id = %s""", (resume_id,))
