@@ -102,14 +102,20 @@ _FUNNEL_STAGES: tuple[tuple[str, str, frozenset[str] | None, str], ...] = (
 )
 
 
-def funnel(conn: psycopg.Connection) -> list[dict[str, Any]]:
-    counts = _status_counts(conn)
+def _app_status_counts(conn: psycopg.Connection) -> dict[str, int]:
+    return {r["status"]: r["n"] for r in
+            _rows(conn, "SELECT status, COUNT(*) AS n FROM applications GROUP BY status")}
+
+
+def funnel(conn: psycopg.Connection, counts: dict | None = None,
+           app_counts: dict | None = None) -> list[dict[str, Any]]:
+    counts = counts if counts is not None else _status_counts(conn)
+    app_counts = app_counts if app_counts is not None else _app_status_counts(conn)
     total = sum(counts.values())
-    applied_from_apps = _scalar(conn,
-        "SELECT COUNT(DISTINCT job_id) FROM applications "
-        "WHERE status IN ('emailed','followup_1','followup_2','replied','denied')")
-    replied_from_apps = _scalar(conn,
-        "SELECT COUNT(DISTINCT job_id) FROM applications WHERE status IN ('replied','denied')")
+    # each job has <=1 email application (UNIQUE job_id+channel), so status counts == distinct-job counts
+    applied_from_apps = sum(app_counts.get(s, 0) for s in
+                            ("emailed", "followup_1", "followup_2", "replied", "denied"))
+    replied_from_apps = sum(app_counts.get(s, 0) for s in ("replied", "denied"))
 
     stages: list[dict[str, Any]] = []
     prev: int | None = None
@@ -177,11 +183,12 @@ def source_breakdown(conn: psycopg.Connection) -> list[dict[str, Any]]:
     return out
 
 
-def score_distribution(conn: psycopg.Connection) -> dict[str, Any]:
+def score_distribution(conn: psycopg.Connection, counts: dict | None = None) -> dict[str, Any]:
     values = [r["s"] for r in
               _rows(conn, "SELECT match_score AS s FROM jobs WHERE match_score IS NOT NULL")]
-    unscored = _scalar(conn,
-        "SELECT COUNT(*) FROM jobs WHERE match_score IS NULL AND status <> 'rejected'")
+    # unscored = NULL score and not rejected = the 'new' + 'screened' buckets
+    unscored = ((counts.get("new", 0) + counts.get("screened", 0)) if counts is not None
+                else _scalar(conn, "SELECT COUNT(*) FROM jobs WHERE match_score IS NULL AND status <> 'rejected'"))
     bands = []
     for key, label, low, high in SCORE_BANDS:
         n = sum(1 for v in values if low <= v < high)
@@ -202,13 +209,13 @@ def score_distribution(conn: psycopg.Connection) -> dict[str, Any]:
     }
 
 
-def today_activity(conn: psycopg.Connection, caps: dict[str, int]) -> dict[str, Any]:
+def today_activity(conn: psycopg.Connection, caps: dict[str, int], app_counts: dict | None = None,
+                   email_sent: int | None = None, collected_24h: int | None = None) -> dict[str, Any]:
     cap = int(caps.get("email_cap") or 0)
-    sent = _scalar(conn,
+    sent = email_sent if email_sent is not None else _scalar(conn,
         "SELECT COUNT(*) FROM applications WHERE channel = 'email' "
         "AND sent_at >= now() - interval '1 day'")
-    app_counts = {r["status"]: r["n"] for r in
-                  _rows(conn, "SELECT status, COUNT(*) AS n FROM applications GROUP BY status")}
+    app_counts = app_counts if app_counts is not None else _app_status_counts(conn)
     return {
         "email": {"sent": sent, "cap": cap,
                   "pct": round(100 * sent / cap, 1) if cap else 0.0,
@@ -218,16 +225,29 @@ def today_activity(conn: psycopg.Connection, caps: dict[str, int]) -> dict[str, 
         "following_up": app_counts.get("followup_1", 0) + app_counts.get("followup_2", 0),
         "replied": app_counts.get("replied", 0),
         "failed": app_counts.get("failed", 0),
-        "collected_last_24h": _scalar(conn,
+        "collected_last_24h": collected_24h if collected_24h is not None else _scalar(conn,
             "SELECT COUNT(*) FROM jobs WHERE collected_at >= now() - interval '1 day'"),
         "dry_run": bool(caps.get("dry_run", True)),
     }
 
 
 def overview(conn: psycopg.Connection, caps: dict[str, int]) -> dict[str, Any]:
-    counts = _status_counts(conn)
+    # Batched: 6 round-trips instead of ~15. Shared counts fetched once and passed
+    # down; all the scalar totals collapse into a single query.
+    counts = _status_counts(conn)                       # Q1: job status
+    app_counts = _app_status_counts(conn)               # Q2: application status
+    summ = _one(conn, """                                -- Q3: every scalar total in one round-trip
+        SELECT (SELECT COUNT(*) FROM contacts) AS contacts,
+               (SELECT COUNT(DISTINCT company) FROM jobs) AS companies,
+               (SELECT COUNT(*) FROM applications) AS applications,
+               (SELECT COUNT(*) FROM tailored_resumes) AS resumes,
+               (SELECT MAX(collected_at) FROM jobs) AS last_collected,
+               (SELECT COUNT(*) FROM jobs WHERE collected_at >= now() - interval '1 day') AS collected_24h,
+               (SELECT COUNT(*) FROM applications WHERE channel='email'
+                  AND sent_at >= now() - interval '1 day') AS email_sent_24h
+    """) or {}
     total_jobs = sum(counts.values())
-    stages = funnel(conn)
+    stages = funnel(conn, counts, app_counts)           # 0 queries (uses prefetched)
     by_key = {s["key"]: s["count"] for s in stages}
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -240,17 +260,18 @@ def overview(conn: psycopg.Connection, caps: dict[str, int]) -> dict[str, Any]:
             "applied": by_key.get("applied", 0),
             "replied": by_key.get("replied", 0),
             "awaiting_score": counts.get("screened", 0),
-            "contacts": _scalar(conn, "SELECT COUNT(*) FROM contacts"),
-            "companies": _scalar(conn, "SELECT COUNT(DISTINCT company) FROM jobs"),
-            "applications": _scalar(conn, "SELECT COUNT(*) FROM applications"),
-            "resumes": _scalar(conn, "SELECT COUNT(*) FROM tailored_resumes"),
+            "contacts": summ.get("contacts", 0),
+            "companies": summ.get("companies", 0),
+            "applications": summ.get("applications", 0),
+            "resumes": summ.get("resumes", 0),
         },
         "funnel": stages,
-        "reject_reasons": reject_reasons(conn),
-        "sources": source_breakdown(conn),
-        "scores": score_distribution(conn),
-        "today": today_activity(conn, caps),
-        "last_collected_at": _scalar(conn, "SELECT MAX(collected_at) FROM jobs", default=None),
+        "reject_reasons": reject_reasons(conn),          # Q4
+        "sources": source_breakdown(conn),               # Q5
+        "scores": score_distribution(conn, counts),      # Q6
+        "today": today_activity(conn, caps, app_counts,
+                                summ.get("email_sent_24h"), summ.get("collected_24h")),  # 0 queries
+        "last_collected_at": summ.get("last_collected"),
         "apply_gate": APPLY_GATE,
     }
 

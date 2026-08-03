@@ -25,6 +25,7 @@ jinja2>=3.1
 
 # neon (postgres) backend + scheduling for the always-on agent
 psycopg[binary]>=3.2
+psycopg-pool>=3.2
 APScheduler>=3.10
 
 # visa-sponsorship registry fuzzy-matching

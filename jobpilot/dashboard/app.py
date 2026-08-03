@@ -16,6 +16,11 @@ from typing import Any, Iterator
 from urllib.parse import parse_qs, urlencode
 
 import psycopg
+from psycopg.rows import dict_row
+try:
+    from psycopg_pool import ConnectionPool
+except ImportError:  # pooling is optional — falls back to a fresh connection per request
+    ConnectionPool = None
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -138,12 +143,27 @@ def create_app(settings_path: Path | None = None) -> FastAPI:
         MANUAL_STATUSES=queries.MANUAL_STATUSES,
         APPLICATION_STATUSES=queries.APPLICATION_STATUSES)
 
-    def get_conn() -> Iterator[psycopg.Connection]:
-        conn = db.connect()
+    # Connection pool — keeps warm connections open so each request skips the ~1s
+    # TLS handshake to Neon (the dashboard's biggest cost from a distant region).
+    pool = None
+    if ConnectionPool is not None:
         try:
-            yield conn
-        finally:
-            conn.close()
+            pool = ConnectionPool(
+                db.dsn(), min_size=2, max_size=8, timeout=15,
+                kwargs={"row_factory": dict_row, "prepare_threshold": None}, open=True)
+        except Exception:  # noqa: BLE001 — any pool failure falls back to per-request connect
+            pool = None
+
+    def get_conn() -> Iterator[psycopg.Connection]:
+        if pool is not None:
+            with pool.connection() as conn:
+                yield conn
+        else:
+            conn = db.connect()
+            try:
+                yield conn
+            finally:
+                conn.close()
 
     def page(request: Request, name: str, conn: psycopg.Connection, **ctx: Any) -> HTMLResponse:
         base = {
