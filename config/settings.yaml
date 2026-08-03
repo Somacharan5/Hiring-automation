@@ -196,6 +196,9 @@ email_discovery:
   sources: ["site_crawl", "github", "linkedin_names", "cse", "hunter"]
   min_confidence_to_autosend: 70   # lowered to match the 60 apply gate posture
   review_catch_all: true
+  # Hunter.io fallback: only used when generic domain resolution fails (free tier
+  # ~50 searches/mo, so it's reserved for the gaps). HUNTER_API_KEY in .env.
+  use_hunter: true
   bounce_scan_days: 30
 
 # ── Database ─────────────────────────────────────────────────────────

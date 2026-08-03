@@ -42,6 +42,19 @@ _GENERIC = [("careers", 75), ("jobs", 68), ("hr", 62), ("talent", 60),
             ("recruiting", 60), ("people", 58)]
 
 
+_LEGAL = re.compile(r"\b(pvt\.?\s*ltd\.?|private\s+limited|ltd\.?|limited|inc\.?|llc|llp|"
+                    r"corp\.?|corporation|gmbh|plc|pte\.?\s*ltd\.?|co\.?|sa|ag|bv|srl)\b\.?", re.I)
+
+
+def clean_company(name: str | None) -> str:
+    """Strip legal suffixes + descriptive tails so the slug/Hunter see the core brand.
+    'TerraTern Pvt Ltd' -> 'TerraTern'; \"McDonald's Global Office in India\" -> \"McDonald's\"."""
+    s = re.sub(r"\b(global\s+)?office\b.*$", "", name or "", flags=re.I)   # "... Global Office in India"
+    s = re.sub(r"[,(].*$", "", s)                                          # ", ..." / "(...)" tails
+    s = _LEGAL.sub("", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
 def candidate_domains(company: str, job_url: str | None = None) -> list[str]:
     """Ordered guesses for the company's email domain: job-URL host, then slug+TLDs."""
     out: list[str] = []
@@ -53,7 +66,7 @@ def candidate_domains(company: str, job_url: str | None = None) -> list[str]:
         if host and not any(a in host for a in _ATS_HOSTS):
             parts = host.split(".")
             out.append(".".join(parts[-2:]) if len(parts) > 2 else host)
-    slug = re.sub(r"[^a-z0-9]", "", (company or "").lower())
+    slug = re.sub(r"[^a-z0-9]", "", clean_company(company).lower())
     if slug:
         out += [f"{slug}.{tld}" for tld in ("com", "ai", "io", "co", "in", "xyz", "org", "net")]
     seen, res = set(), []
@@ -89,14 +102,37 @@ def resolve_domain(company: str, job_url: str | None = None) -> str | None:
     return None
 
 
+def _hunter_fallback(conn, company: str, settings: dict | None) -> str | None:
+    """Generic resolution failed → ask Hunter (if enabled + quota) for the domain and a
+    recruiting address. Registers any specific recruiting email found. Returns the domain."""
+    ed = (settings or {}).get("email_discovery", {}) or {}
+    if not ed.get("use_hunter", True):
+        return None
+    from . import hunter
+    if not hunter.has_quota():
+        return None
+    res = hunter.domain_search(company=clean_company(company) or company)
+    if not res or not res.get("domain"):
+        return None
+    best = hunter.best_recruiting_email(res)
+    if best:                                  # a real recruiting/HR person or inbox — prefer it
+        add_contact(conn, company, email=best["email"], name=best.get("name") or None,
+                    title=best.get("position") or None, source="hunter", tier="specific",
+                    confidence=max(72, best.get("confidence", 0)), verified=False)
+    return res["domain"]
+
+
 def discover_generic(conn, company: str, job_url: str | None = None,
                      settings: dict | None = None) -> list[dict]:
-    """Register careers@/jobs@/hr@ for the company's MX-valid domain. Returns contacts."""
+    """Register careers@/jobs@/hr@ for the company's MX-valid domain (Hunter fallback if
+    the domain can't be resolved). Returns contacts."""
     existing = [c for c in contacts_for_company(conn, company) if c.get("email")]
     if existing:
         return existing                      # already discovered; don't re-hammer DNS
 
     domain = resolve_domain(company, job_url)
+    if not domain:
+        domain = _hunter_fallback(conn, company, settings)   # specific-email tool for the gaps
     if not domain:
         return []
 
