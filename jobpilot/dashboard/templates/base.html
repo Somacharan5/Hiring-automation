@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}JobPilot{% endblock %}</title>
-<link rel="stylesheet" href="/static/material.css">
+<link rel="stylesheet" href="/static/material.css?v={{ asset_ver }}">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='19' font-size='19'>✈</text></svg>">
 <script>
   (function () {
@@ -101,7 +101,7 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v={{ asset_ver }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

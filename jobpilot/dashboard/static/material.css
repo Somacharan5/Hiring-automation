@@ -97,6 +97,10 @@ h1,h2,h3 { color: var(--heading); font-weight: 700; margin: 0; }
   display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: var(--radius-sm);
   color: rgba(255,255,255,.85); font-size: .9rem; font-weight: 500; transition: background .2s;
 }
+/* Inline glyph icons carry only a viewBox (no width/height); give them a sane
+   default so an un-scoped one (e.g. the job-detail verdict) can't balloon to the
+   SVG fallback 300×150. Every specific rule below has higher specificity + wins. */
+svg { width: 1.1em; height: 1.1em; flex: none; vertical-align: -0.15em; }
 .nav__link svg { width: 18px; height: 18px; opacity: .9; }
 .nav__link:hover { background: rgba(255,255,255,.08); }
 .nav__link.is-active { background: rgba(255,255,255,.15); color: #fff; box-shadow: var(--shadow-card); }

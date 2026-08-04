@@ -138,10 +138,18 @@ def create_app(settings_path: Path | None = None) -> FastAPI:
     templates.env.filters.update(
         relative=fmt_relative, datetime=fmt_datetime, date=fmt_date,
         num=fmt_num, titlecase=titlecase, paragraphs=paragraphs)
+    # Cache-buster for /static assets: the CSS/JS mtime, so a redeploy (which
+    # restarts the service) always serves fresh styles instead of a stale cache.
+    try:
+        _asset_ver = str(int(max((HERE / "static" / f).stat().st_mtime
+                                 for f in ("material.css", "app.js"))))
+    except OSError:
+        _asset_ver = "0"
     templates.env.globals.update(
         band_label=queries.band_label, SCORE_BANDS=queries.SCORE_BANDS,
         MANUAL_STATUSES=queries.MANUAL_STATUSES,
-        APPLICATION_STATUSES=queries.APPLICATION_STATUSES)
+        APPLICATION_STATUSES=queries.APPLICATION_STATUSES,
+        asset_ver=_asset_ver)
 
     # Connection pool — keeps warm connections open so each request skips the ~1s
     # TLS handshake to Neon (the dashboard's biggest cost from a distant region).
