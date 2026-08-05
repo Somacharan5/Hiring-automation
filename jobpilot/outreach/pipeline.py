@@ -9,7 +9,7 @@ run_outreach_cycle() runs the whole thing in order. Sending stays gated by dry_r
 from __future__ import annotations
 
 from .composer import compose_email
-from .find_addresses import best_sendable_contact, discover_generic
+from .find_addresses import resolve_recipients
 from .followups import run_followups
 from .inbox_reader import scan_replies
 from .send import send_pending
@@ -22,7 +22,6 @@ def prepare_outreach(conn, settings: dict, limit: int | None = None,
 
     cfg = settings.get("outreach", {})
     gate = min_score if min_score is not None else int(cfg.get("min_score_to_contact", 60))
-    floor = int((settings.get("email_discovery", {}) or {}).get("min_confidence_to_autosend", 70))
 
     rows = conn.execute(
         "SELECT j.* FROM jobs j LEFT JOIN applications a "
@@ -36,11 +35,15 @@ def prepare_outreach(conn, settings: dict, limit: int | None = None,
     for job in rows:
         log(f"\n▸ {job['company']} — {job['title'].strip()}  [{job['match_score']}]")
         try:
-            discover_generic(conn, job["company"], job_url=job["url"], settings=settings)
+            rec = resolve_recipients(conn, job, settings)   # careers@ + verified hiring person
         except Exception as e:  # noqa: BLE001 — discovery must not kill the batch
             log(f"  ✗ discovery: {type(e).__name__}: {e}")
-        contact = best_sendable_contact(conn, job["company"], min_confidence=floor)
-        log(f"  address: {contact['email'] if contact else '(none found — drafts for review)'}")
+            rec = {"to": [], "person_contact": None, "person": None}
+        contact = rec.get("person_contact")               # the person, for the greeting
+        to_list = rec.get("to") or []
+        who = rec.get("person") or {}
+        log(f"  to:      {', '.join(to_list) if to_list else '(none found — draft for review)'}"
+            + (f"   [person via {who.get('source')}]" if who else ""))
 
         try:
             res = tailor_and_render(conn, job["id"], settings)
@@ -50,11 +53,10 @@ def prepare_outreach(conn, settings: dict, limit: int | None = None,
             log(f"  ✗ tailor: {type(e).__name__}: {e}")
 
         try:
-            draft = compose_email(conn, job["id"], contact, settings)
+            draft = compose_email(conn, job["id"], contact, settings, recipients=to_list)
             log(f"  email:   {draft.subject!r}")
             results.append({"job_id": job["id"], "company": job["company"],
-                            "to": contact["email"] if contact else None,
-                            "subject": draft.subject})
+                            "to": ", ".join(to_list) or None, "subject": draft.subject})
         except Exception as e:  # noqa: BLE001
             log(f"  ✗ compose: {type(e).__name__}: {e}")
             results.append({"job_id": job["id"], "company": job["company"], "error": str(e)})

@@ -35,7 +35,7 @@ def live_sending_enabled(settings: dict | None) -> bool:
 
 
 def _pending(conn, limit: int | None):
-    sql = ("SELECT a.id, a.job_id, a.subject, a.body, a.resume_path, "
+    sql = ("SELECT a.id, a.job_id, a.subject, a.body, a.resume_path, a.recipients, "
            "       j.company, j.title, j.match_score, c.email AS to_email "
            "FROM applications a JOIN jobs j ON j.id = a.job_id "
            "LEFT JOIN contacts c ON c.id = a.contact_id "
@@ -50,9 +50,10 @@ def _pending(conn, limit: int | None):
         return cur.fetchall()
 
 
-def smtp_send(settings: dict, to_email: str, subject: str, body: str,
+def smtp_send(settings: dict, to_emails: list[str], subject: str, body: str,
               attachments: list[str] | None = None) -> None:
-    """Send one message over Gmail SMTP. Raises on failure. Sends for real — callers guard it."""
+    """Send one message to one or more recipients over Gmail SMTP. Raises on failure.
+    All addresses go in the To: header (the hiring person + careers@). Callers guard it."""
     _load_env()
     cfg = settings["outreach"]
     user = cfg["from_email"]
@@ -60,9 +61,10 @@ def smtp_send(settings: dict, to_email: str, subject: str, body: str,
     if not pw:
         raise RuntimeError("GMAIL_APP_PASSWORD not set in .env")
 
+    to_list = [e for e in (to_emails if isinstance(to_emails, list) else [to_emails]) if e]
     msg = EmailMessage()
     msg["From"] = formataddr((cfg.get("from_name", user), user))
-    msg["To"] = to_email
+    msg["To"] = ", ".join(to_list)
     msg["Reply-To"] = user                      # replies land in the monitored inbox
     msg["Subject"] = subject
     msg.set_content(body)
@@ -95,8 +97,9 @@ def send_pending(conn, settings: dict, limit: int | None = None) -> dict:
         why = ("dry_run is on" if not live else
                "first_run_draft_only is on — review these, then set it false to go live")
         for r in rows:
+            to_list = list(r["recipients"] or []) or ([r["to_email"]] if r["to_email"] else [])
             report["would_send"].append(
-                {"company": r["company"], "title": r["title"], "to": r["to_email"],
+                {"company": r["company"], "title": r["title"], "to": ", ".join(to_list) or None,
                  "subject": r["subject"]})
         report["reason"] = why
         return report
@@ -106,7 +109,10 @@ def send_pending(conn, settings: dict, limit: int | None = None) -> dict:
         if already >= cap:
             report["skipped"].append({"company": r["company"], "reason": f"daily cap {cap} reached"})
             continue
-        if not r["to_email"]:
+        # Prefer the resolved dual-recipient list (person + careers@); fall back to the
+        # single linked contact for older rows.
+        to_list = list(r["recipients"] or []) or ([r["to_email"]] if r["to_email"] else [])
+        if not to_list:
             report["skipped"].append({"company": r["company"], "reason": "no sendable address"})
             continue
         resume = r["resume_path"]
@@ -114,7 +120,7 @@ def send_pending(conn, settings: dict, limit: int | None = None) -> dict:
             report["skipped"].append({"company": r["company"], "reason": "resume file missing"})
             continue
         try:
-            smtp_send(settings, r["to_email"], r["subject"], r["body"],
+            smtp_send(settings, to_list, r["subject"], r["body"],
                       attachments=[resume] if resume else None)
         except Exception as e:  # noqa: BLE001 — one bad send must not kill the batch
             set_application_status(conn, r["id"], "failed", f"{type(e).__name__}: {e}")

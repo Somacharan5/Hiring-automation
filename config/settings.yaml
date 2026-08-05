@@ -192,13 +192,22 @@ portal:
   enabled: false
 
 # ── Recruiter email discovery tuning ─────────────────────────────────
+# Finds the hiring person (recruiter / HR / dept head) to email ALONGSIDE careers@.
+# FREE public data first (JD parse, site crawl, GitHub, pattern inference); paid APIs
+# are optional overflow, rotated across many free-tier keys → steady-state cost ≈ ₹0.
 email_discovery:
-  sources: ["site_crawl", "github", "linkedin_names", "cse", "hunter"]
+  sources: ["jd", "site_crawl", "github", "cse", "apollo", "hunter"]
   min_confidence_to_autosend: 70   # lowered to match the 60 apply gate posture
   review_catch_all: true
-  # Hunter.io fallback: only used when generic domain resolution fails (free tier
-  # ~50 searches/mo, so it's reserved for the gaps). HUNTER_API_KEY in .env.
+  # Accuracy floor: a person is emailed only when the address is published or built
+  # from a domain-confirmed pattern; a paid guess below this confidence must pass a
+  # (free-key) verification, else we send careers@ only — never a guessed human.
+  min_person_confidence: 90
+  verify_before_send: true
+  # Paid overflow — only hit when the free path finds nothing. Keys are comma-separated
+  # pools in .env (HUNTER_API_KEYS / APOLLO_API_KEYS) so we ride many free tiers.
   use_hunter: true
+  use_apollo: true
   bounce_scan_days: 30
 
 # ── Database ─────────────────────────────────────────────────────────

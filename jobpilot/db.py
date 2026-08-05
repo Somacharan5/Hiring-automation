@@ -255,21 +255,27 @@ def latest_resume_for_job(conn: psycopg.Connection, job_id: str) -> dict | None:
 def upsert_application(conn: psycopg.Connection, job_id: str, channel: str, status: str,
                        contact_id: int | None = None, resume_path: str | None = None,
                        subject: str | None = None, body: str | None = None,
-                       portfolio_link: str | None = None, error: str | None = None) -> int:
-    """Create or update the application record for (job_id, channel)."""
+                       portfolio_link: str | None = None, error: str | None = None,
+                       recipients: list[str] | None = None) -> int:
+    """Create or update the application record for (job_id, channel).
+
+    `recipients` is the ordered To: list (hiring person + careers@); None leaves it
+    unset and the sender falls back to the single linked contact's address.
+    """
     with conn.cursor() as cur:
         cur.execute(
             """INSERT INTO applications
-               (job_id, channel, status, contact_id, resume_path, subject, body, portfolio_link, error)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+               (job_id, channel, status, contact_id, resume_path, subject, body,
+                portfolio_link, error, recipients)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                ON CONFLICT (job_id, channel) DO UPDATE SET
                  status=EXCLUDED.status, contact_id=EXCLUDED.contact_id,
                  resume_path=EXCLUDED.resume_path, subject=EXCLUDED.subject,
                  body=EXCLUDED.body, portfolio_link=EXCLUDED.portfolio_link,
-                 error=EXCLUDED.error
+                 error=EXCLUDED.error, recipients=EXCLUDED.recipients
                RETURNING id""",
             (job_id, channel, status, contact_id, resume_path, subject, body,
-             portfolio_link, error),
+             portfolio_link, error, Jsonb(recipients) if recipients is not None else None),
         )
         row = cur.fetchone()
     conn.commit()

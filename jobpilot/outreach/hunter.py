@@ -1,18 +1,17 @@
-"""Hunter.io — the specific-email fallback when generic domain resolution fails.
+"""Hunter.io — paid-overflow finder, used only when the free path (free_finder)
+turns up nothing. Domain-first: we only ever ask Hunter about a domain we have
+already resolved and trusted (never `company=…`, which is what mapped SAGON onto
+faro.com). Keys come from a rotating pool so we ride several free tiers.
 
-Free tier is ~50 domain-searches + 100 verifications/month, so this is used
-sparingly: only for shortlisted companies with no resolvable address, and each
-result is stored as a contact (never re-queried). Degrades to nothing if the key
-is missing or the quota is spent.
+Free tier ≈ 50 domain-searches + 100 verifications / key / month; with a pool of
+8-10 keys that is plenty. Degrades to nothing when every key is spent.
 """
 
 from __future__ import annotations
 
-import os
-
 import requests
 
-from ..db import _load_env
+from .keypool import KeyPool
 
 _BASE = "https://api.hunter.io/v2"
 TIMEOUT = 25
@@ -21,46 +20,66 @@ TIMEOUT = 25
 _BAD_LOCALS = {"noreply", "no-reply", "press", "legal", "abuse", "privacy", "security",
                "billing", "info", "marketing", "sales", "support", "newsletter",
                "promociones", "hello", "contact", "admin", "webmaster"}
-# Hints (in department / position / local-part) that an address is recruiting-relevant.
 _RECRUIT_HINTS = ("recruit", "talent", "people", "hr", "human resources", "hiring", "staffing")
 
 
-def _key() -> str:
-    _load_env()
-    return os.environ.get("HUNTER_API_KEY", "").strip()
+class _QuotaSpent(Exception):
+    """Raised inside a pooled call when the current key is out of quota/rate-limited."""
 
 
-def account() -> dict | None:
-    """Remaining Hunter quota, or None if no key / call fails."""
-    key = _key()
-    if not key:
-        return None
+# ── key pool ─────────────────────────────────────────────────────────
+
+def _searches_left(key: str) -> int:
     try:
         rs = (requests.get(f"{_BASE}/account", params={"api_key": key}, timeout=15)
-              .json().get("data", {}).get("requests", {}))
+              .json().get("data", {}).get("requests", {}).get("searches", {}))
     except Exception:  # noqa: BLE001
-        return None
-    s, v = rs.get("searches", {}), rs.get("verifications", {})
-    return {"searches_left": (s.get("available", 0) - s.get("used", 0)),
-            "verifications_left": (v.get("available", 0) - v.get("used", 0))}
+        return 1                                   # can't tell → let the call try
+    return rs.get("available", 0) - rs.get("used", 0)
+
+
+def _pool() -> KeyPool:
+    return KeyPool(["HUNTER_API_KEYS", "HUNTER_API_KEY"],
+                   has_quota=lambda k: _searches_left(k) >= 1)
 
 
 def has_quota(min_searches: int = 1) -> bool:
-    a = account()
-    return bool(a) and a["searches_left"] >= min_searches
+    """True if any pooled key still has at least `min_searches` of search quota."""
+    pool = KeyPool(["HUNTER_API_KEYS", "HUNTER_API_KEY"],
+                   has_quota=lambda k: _searches_left(k) >= min_searches)
+    return pool.current() is not None
 
 
-def domain_search(company: str | None = None, domain: str | None = None,
-                  limit: int = 10) -> dict | None:
-    """Resolve a company/domain to {domain, pattern, emails[]}. Costs 1 search."""
-    key = _key()
-    if not key or not (company or domain):
+def _is_quota_error(e: Exception) -> bool:
+    return isinstance(e, _QuotaSpent)
+
+
+def _get(key: str, path: str, params: dict) -> dict:
+    r = requests.get(f"{_BASE}/{path}", params={**params, "api_key": key}, timeout=TIMEOUT)
+    if r.status_code in (429, 402) or (r.status_code == 401):
+        raise _QuotaSpent()
+    body = r.json()
+    if r.status_code >= 400:
+        errs = str(body.get("errors") or body)
+        if any(w in errs.lower() for w in ("usage", "quota", "limit", "reset")):
+            raise _QuotaSpent()
+        return {}
+    return body.get("data", {}) or {}
+
+
+# ── search / verify (pooled) ─────────────────────────────────────────
+
+def domain_search(domain: str, limit: int = 10) -> dict | None:
+    """People + inferred pattern for a KNOWN domain. Costs 1 search on the live key."""
+    if not domain:
         return None
-    params = {"api_key": key, "limit": limit}
-    params["domain" if domain else "company"] = domain or company
-    try:
-        d = requests.get(f"{_BASE}/domain-search", params=params, timeout=TIMEOUT).json().get("data", {})
-    except Exception:  # noqa: BLE001
+    pool = _pool()
+
+    def call(key: str) -> dict:
+        return _get(key, "domain-search", {"domain": domain, "limit": limit})
+
+    d = pool.run(call, _is_quota_error)
+    if not d:
         return None
     return {
         "domain": d.get("domain"), "pattern": d.get("pattern"),
@@ -72,10 +91,31 @@ def domain_search(company: str | None = None, domain: str | None = None,
     }
 
 
-def best_recruiting_email(result: dict | None) -> dict | None:
-    """Pick the most recruiting-relevant address from a domain-search result, or None."""
+def verify(email: str) -> dict | None:
+    """Deliverability check (costs 1 verification). Returns {status, score} or None."""
+    if not email:
+        return None
+    d = _pool().run(lambda key: _get(key, "email-verifier", {"email": email}), _is_quota_error)
+    return {"status": d.get("status"), "score": d.get("score")} if d else None
+
+
+# ── person selection ─────────────────────────────────────────────────
+
+def _role_hints(role_title: str | None) -> tuple[str, ...]:
+    """Department-head hints for THIS role (a PM req → product leadership)."""
+    t = (role_title or "").lower()
+    if "product" in t:
+        return ("head of product", "chief product", "cpo", "vp product",
+                "director of product", "product lead", "director, product")
+    return ()
+
+
+def best_recruiting_email(result: dict | None, role_title: str | None = None) -> dict | None:
+    """Pick the most hiring-relevant address: a recruiter/HR person first, then the
+    department head for this role, then any named person with a title."""
     if not result:
         return None
+    role_hints = _role_hints(role_title)
     scored: list[tuple[int, dict]] = []
     for e in result.get("emails", []):
         local = (e["email"] or "").split("@", 1)[0].lower()
@@ -83,21 +123,10 @@ def best_recruiting_email(result: dict | None) -> dict | None:
             continue
         blob = f"{e['dept']} {e['position'].lower()} {local}"
         if any(h in blob for h in _RECRUIT_HINTS):
-            scored.append((200 + e["confidence"], e))          # recruiting inbox/person — best
+            scored.append((300 + e["confidence"], e))          # recruiter / HR — best
+        elif role_hints and any(h in blob for h in role_hints):
+            scored.append((250 + e["confidence"], e))          # the role's dept head
         elif e["type"] == "personal" and e["position"]:
-            scored.append((e["confidence"], e))                # a named person with a role
+            scored.append((e["confidence"], e))                # some named person with a role
     scored.sort(key=lambda x: -x[0])
     return scored[0][1] if scored else None
-
-
-def verify(email: str) -> dict | None:
-    """Verify deliverability (costs 1 verification). Returns {status, score} or None."""
-    key = _key()
-    if not key or not email:
-        return None
-    try:
-        d = requests.get(f"{_BASE}/email-verifier", params={"api_key": key, "email": email},
-                         timeout=TIMEOUT).json().get("data", {})
-    except Exception:  # noqa: BLE001
-        return None
-    return {"status": d.get("status"), "score": d.get("score")}

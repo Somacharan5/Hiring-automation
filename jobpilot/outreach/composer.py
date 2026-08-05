@@ -254,11 +254,13 @@ Write the email. Sign it "{from_name}". Return subject and body only."""
 # ── public API ───────────────────────────────────────────────────────
 
 def compose_email(conn, job_id: str, contact=None, settings: dict | None = None,
-                  persist: bool = True, model: str | None = None) -> EmailDraft:
+                  persist: bool = True, model: str | None = None,
+                  recipients: list[str] | None = None) -> EmailDraft:
     """Draft a personalised email for one (job, contact) and persist it as 'drafted'.
 
-    `contact` is a contacts row (or dict), or None for a nameless role address.
-    Returns the validated EmailDraft. Sends nothing, ever.
+    `contact` is a contacts row (or dict) — the hiring person, used for the greeting —
+    or None for a nameless role address. `recipients` is the full To: list (person +
+    careers@) persisted for the sender. Returns the validated EmailDraft. Sends nothing.
     """
     job = get_job(conn, job_id)
     if job is None:
@@ -311,7 +313,8 @@ def compose_email(conn, job_id: str, contact=None, settings: dict | None = None,
         upsert_application(conn, job_id=job_id, channel="email", status="preparing_resume",
                            contact_id=contact_id, resume_path=resume_path or None,
                            subject=draft.subject, body=draft.body,
-                           portfolio_link=cfg.get("portfolio_link"), error=note)
+                           portfolio_link=cfg.get("portfolio_link"), error=note,
+                           recipients=recipients or None)
     return draft
 
 
